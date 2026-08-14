@@ -8,14 +8,21 @@ export default function App() {
   // [State Management] Track application state and category list
   const [state, setState] = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
-  void categories;
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   // [Event Handler] System check click action handler
   async function handleCheck() {
-    // TODO(Issue 4): set loading, call checkSystem(), then either
-    //   - success: store categories and show Online + the list, or
-    //   - error: show Offline + a useful message.
     setState("loading");
+    setErrorMessage("");
+    try {
+      const status = await checkSystem();
+      setCategories(status.categories);
+      setState("success");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unable to connect to TokTickIT API";
+      setErrorMessage(msg || "Unable to connect to TokTickIT API");
+      setState("error");
+    }
   }
 
   // [UI Render] Main Service Desk Layout
@@ -31,8 +38,32 @@ export default function App() {
         {state === "loading" ? "Loading…" : "Check System"}
       </button>
 
-      {/* TODO(Issue 4): render loading / success (Online + categories) / error (Offline) states. */}
+      {state === "success" && (
+        <div className="mt-4">
+          <p className="mb-2">
+            System Status: <span className="fw-bold text-success">Online</span>
+          </p>
+          {categories.length > 0 && (
+            <div>
+              <p className="fw-bold mb-1">Supported Request Categories:</p>
+              <ol className="mb-0">
+                {categories.map((c) => (
+                  <li key={c.id}>{c.name}</li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </div>
+      )}
+
+      {state === "error" && (
+        <div className="mt-4">
+          <p className="mb-1 text-danger">
+            System Status: <span className="fw-bold">Offline</span>
+          </p>
+          <p className="text-muted mb-0">{errorMessage}</p>
+        </div>
+      )}
     </div>
   );
 }
-
