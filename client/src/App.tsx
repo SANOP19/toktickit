@@ -60,10 +60,12 @@ export default function App() {
 
       {state === "error" && (
         <div className="mt-4">
-          <p className="mb-1 text-danger">
-            System Status: <span className="fw-bold">Offline</span>
+          <p className="mb-2">
+            System Status: <span className="fw-bold text-danger">Offline</span>
           </p>
-          <p className="text-muted mb-0">{errorMessage}</p>
+          <div className="alert alert-danger" role="alert" style={{ maxWidth: 360 }}>
+            {errorMessage}
+          </div>
         </div>
       )}
     </div>
