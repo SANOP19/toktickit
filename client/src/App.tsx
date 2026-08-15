@@ -45,10 +45,12 @@ export default function App() {
           </p>
           {categories.length > 0 && (
             <div>
-              <p className="fw-bold mb-1">Supported Request Categories:</p>
-              <ol className="mb-0">
+              <p className="fw-bold mb-2">Supported Request Categories:</p>
+              <ol className="list-group list-group-numbered" style={{ maxWidth: 360 }}>
                 {categories.map((c) => (
-                  <li key={c.id}>{c.name}</li>
+                  <li key={c.id} className="list-group-item">
+                    {c.name}
+                  </li>
                 ))}
               </ol>
             </div>
