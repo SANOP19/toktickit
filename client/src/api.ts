@@ -51,3 +51,23 @@ export async function fetchRelatedSystems(): Promise<RelatedSystem[]> {
   }
   return res.json();
 }
+
+export async function createTicket(payload: {
+  requesterId: number;
+  categoryId: number;
+  relatedSystemId: number;
+  summary: string;
+  description: string;
+  requestedPriority: string;
+}): Promise<any> {
+  const res = await fetch(`${API_URL}/api/tickets`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to create ticket");
+  }
+  return res.json();
+}

@@ -3,6 +3,7 @@ import { checkSystem, Category } from "./api.js";
 import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
 import { Navbar } from "./components/Navbar.js";
 import { DevRequesterSelector } from "./components/DevRequesterSelector.js";
+import { CreateTicket } from "./components/CreateTicket.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 
@@ -126,15 +127,10 @@ export function AppContent() {
             )}
 
             {currentTab === "create-ticket" && (
-              <div className="card shadow-sm border-0 p-4" style={{ backgroundColor: "#FFFFFF" }}>
-                <h2 className="h5 fw-bold mb-1" style={{ color: "#1F2937" }}>Create Ticket</h2>
-                <p className="text-muted small mb-4">
-                  Submit an IT support request on behalf of <strong>{selectedRequester?.name}</strong>.
-                </p>
-                <div className="alert alert-info small" style={{ backgroundColor: "#EAF6EF", borderColor: "#0B7A46", color: "#006B3C" }}>
-                  Ticket creation form will be integrated in Issue 3.
-                </div>
-              </div>
+              <CreateTicket
+                onSuccess={() => setCurrentTab("my-tickets")}
+                onCancel={() => setCurrentTab("my-tickets")}
+              />
             )}
           </>
         )}
