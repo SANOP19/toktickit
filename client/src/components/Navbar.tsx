@@ -49,6 +49,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             📋 My Tickets
           </button>
           <button
+            data-testid="nav-create-ticket"
             className={`btn btn-sm text-white px-3 py-1 rounded-pill ${
               currentTab === "create-ticket" ? "fw-bold shadow-sm" : "opacity-75"
             }`}
