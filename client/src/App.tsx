@@ -4,6 +4,7 @@ import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
 import { Navbar } from "./components/Navbar.js";
 import { DevRequesterSelector } from "./components/DevRequesterSelector.js";
 import { CreateTicket } from "./components/CreateTicket.js";
+import { MyTickets } from "./components/MyTickets.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 
@@ -100,30 +101,9 @@ export function AppContent() {
 
             {/* Tab Content Display */}
             {currentTab === "my-tickets" && (
-              <div className="card shadow-sm border-0 p-4" style={{ backgroundColor: "#FFFFFF" }}>
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <div>
-                    <h2 className="h5 fw-bold mb-1" style={{ color: "#1F2937" }}>My Tickets</h2>
-                    <p className="text-muted small mb-0">
-                      Viewing support tickets for <strong data-testid="active-requester-name">{selectedRequester?.name}</strong> ({selectedRequester?.email})
-                    </p>
-                  </div>
-                  <button
-                    className="btn btn-sm text-white px-3"
-                    style={{ backgroundColor: "#006B3C" }}
-                    onClick={() => setCurrentTab("create-ticket")}
-                  >
-                    + Create Ticket
-                  </button>
-                </div>
-                <div className="text-center py-5 text-muted">
-                  <span className="fs-1 d-block mb-2">📋</span>
-                  <p className="small mb-1">No tickets created yet.</p>
-                  <p className="small text-secondary">
-                    Click <strong>+ Create Ticket</strong> above or switch to the Create Ticket tab to submit a new IT request.
-                  </p>
-                </div>
-              </div>
+              <MyTickets
+                onCreateClick={() => setCurrentTab("create-ticket")}
+              />
             )}
 
             {currentTab === "create-ticket" && (
