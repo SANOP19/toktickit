@@ -71,3 +71,33 @@ export async function createTicket(payload: {
   }
   return res.json();
 }
+
+export async function fetchTickets(params: {
+  requesterId: number;
+  search?: string;
+  categoryId?: number;
+  priority?: string;
+  status?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  limit?: number;
+}): Promise<any> {
+  const query = new URLSearchParams();
+  query.set("requesterId", String(params.requesterId));
+  if (params.search) query.set("search", params.search);
+  if (params.categoryId) query.set("categoryId", String(params.categoryId));
+  if (params.priority) query.set("priority", params.priority);
+  if (params.status) query.set("status", params.status);
+  if (params.sortBy) query.set("sortBy", params.sortBy);
+  if (params.sortOrder) query.set("sortOrder", params.sortOrder);
+  if (params.page) query.set("page", String(params.page));
+  if (params.limit) query.set("limit", String(params.limit));
+
+  const res = await fetch(`${API_URL}/api/tickets?${query.toString()}`);
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to load tickets");
+  }
+  return res.json();
+}
