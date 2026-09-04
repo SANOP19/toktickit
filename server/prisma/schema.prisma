@@ -10,14 +10,74 @@ datasource db {
 }
 
 // ---------------------------------------------------------------------------
-// [Data Model: Category] Issue 3 — IT request categories schema definition
-// Define a Category model with:
-//   id        Int      @id @default(autoincrement())
-//   name      String   @unique
-//   createdAt DateTime @default(now())
+// [Data Model: Category] Reference entity for IT request categories
 model Category {
   id        Int      @id @default(autoincrement())
   name      String   @unique
   createdAt DateTime @default(now())
+  tickets   Ticket[]
 }
 
+// ---------------------------------------------------------------------------
+// [Data Model: RequesterUser] Lab 2 Development Requester context ("user login")
+model RequesterUser {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  tickets   Ticket[]
+}
+
+// ---------------------------------------------------------------------------
+// [Data Model: RelatedSystem] Reference entity for affected platform/service
+model RelatedSystem {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  tickets   Ticket[]
+}
+
+// ---------------------------------------------------------------------------
+// [Data Model: Ticket] Core IT support ticket entity
+model Ticket {
+  id                Int           @id @default(autoincrement())
+  ticketNumber      String        @unique
+  summary           String
+  description       String
+  requestedPriority String        @default("MEDIUM")
+  currentStatus     String        @default("New")
+  requesterId       Int
+  requester         RequesterUser @relation(fields: [requesterId], references: [id])
+  categoryId        Int
+  category          Category      @relation(fields: [categoryId], references: [id])
+  relatedSystemId   Int
+  relatedSystem     RelatedSystem @relation(fields: [relatedSystemId], references: [id])
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  attachments       Attachment[]
+
+  @@index([requesterId])
+  @@index([ticketNumber])
+}
+
+// ---------------------------------------------------------------------------
+// [Data Model: Attachment] Uploaded supporting files with soft-removal rules
+model Attachment {
+  id            Int       @id @default(autoincrement())
+  ticketId      Int
+  ticket        Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  originalName  String
+  storageName   String    @unique
+  filePath      String
+  mimeType      String
+  sizeBytes     Int
+  isRemoved     Boolean   @default(false)
+  removedAt     DateTime?
+  removalReason String?
+  removedById   Int?
+  createdAt     DateTime  @default(now())
+
+  @@index([ticketId])
+}

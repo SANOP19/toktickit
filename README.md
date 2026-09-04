@@ -17,7 +17,8 @@ TokTickIT is a full-stack IT Service Desk application built as part of CPE334 In
 toktickit/
 ├── client/         # React + TypeScript + Vite frontend
 ├── server/         # Node.js + Express + Prisma backend
-├── docs/           # Lab documentation (lab-01)
+├── docs/           # Engineering contracts & documentation (lab-01, lab-02)
+├── e2e/            # Playwright End-to-End test suite
 ├── .gitignore      # Git ignore patterns
 └── README.md       # Project setup and usage instructions
 ```
@@ -47,7 +48,7 @@ cp .env.example .env
 # Set DATABASE_URL in .env to your PostgreSQL database instance
 
 npx prisma migrate dev  # Run Prisma database migrations
-npm run prisma:seed    # Seed initial categories
+npm run prisma:seed    # Seed categories, related systems, and development requesters
 npm run dev            # Starts Express API server at http://localhost:3000
 npm test               # Runs Vitest API tests
 ```
@@ -57,5 +58,6 @@ npm test               # Runs Vitest API tests
 ## Branching & Workflow
 
 - `main`: Stable release (production)
+- `lab2-staging`: Integration branch for Lab 2
 - `lab1-staging`: Integration branch for Lab 1
 - Feature branches: `feature/<issue-number>-<feature-name>`
