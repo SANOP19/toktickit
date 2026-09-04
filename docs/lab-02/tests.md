@@ -79,11 +79,36 @@ npx playwright test e2e/lab-02/
 
 ## 6. Final Results
 All tests in test suites passed 100% with no skipped or disabled tests.
+
+### 6.1 Server Test Suite (`npm test -- --run` in `server/`)
 ```text
-Server Tests: 21 passed (21 across 7 test files)
-Client Tests: 14 passed (14 across 5 test files)
-E2E Tests: 1 planned (1)
+ ✓ tests/lab-01/health.test.ts (1 test)
+ ✓ tests/lab-02/requester-context.api.test.ts (2 tests)
+ ✓ tests/lab-01/categories.test.ts (1 test)
+ ✓ tests/lab-02/create-ticket.api.test.ts (3 tests)
+ ✓ tests/lab-02/my-tickets.api.test.ts (4 tests)
+ ✓ tests/lab-02/ticket-detail.api.test.ts (3 tests)
+ ✓ tests/lab-02/attachments.api.test.ts (7 tests)
+
+ Test Files  7 passed (7)
+      Tests  21 passed (21)
+   Duration  3.71s
 ```
+
+### 6.2 Client Test Suite (`npm test -- --run` in `client/`)
+```text
+ ✓ tests/lab-02/MyTickets.test.tsx (3 tests)
+ ✓ tests/lab-02/RequesterContext.test.tsx (2 tests)
+ ✓ tests/lab-01/App.test.tsx (3 tests)
+ ✓ tests/lab-02/CreateTicket.test.tsx (3 tests)
+ ✓ tests/lab-02/TicketDetail.test.tsx (3 tests)
+
+ Test Files  5 passed (5)
+      Tests  14 passed (14)
+   Duration  2.02s
+```
+
+**Total Automated Tests:** **35 passed (100% pass rate)**.
 
 ---
 
