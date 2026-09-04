@@ -28,8 +28,8 @@ Testing for Lab 2 employs Test-Driven Development (TDD) and Test-Driven Specific
 | **UI-02** | UI | AC-04, BR-06, BR-07 | Create ticket form client validation | Red error messages shown below invalid inputs; API not called | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
 | **UI-03** | UI | AC-01, AC-10 | Create ticket form submit busy state & error state | Submit button disabled with spinner; error banner shown on failure | `client/tests/lab-02/CreateTicket.test.tsx` | Pass |
 | **UI-04** | UI | AC-03, AC-05 | My Tickets table rendering, filtering, and pagination | Displays correct rows; filter controls trigger re-query; empty state | `client/tests/lab-02/MyTickets.test.tsx` | Pass |
-| **UI-05** | UI | AC-03, BR-05 | Ticket Detail read-only display and access control | Ticket header read-only; unauthorized message if not owned | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Pass |
-| **UI-06** | UI | AC-08, AC-09 | Attachment management section & soft-remove modal | Active list, remove modal prompts for reason, removed badge displayed | `client/tests/lab-02/AttachmentSection.test.tsx` | Pass |
+| **UI-05** | UI | AC-03, BR-05 | Ticket Detail read-only display and access control | Ticket header read-only; unauthorized message if not owned | `client/tests/lab-02/TicketDetail.test.tsx` | Pass |
+| **UI-06** | UI | AC-08, AC-09 | Attachment management section & soft-remove modal | Active list, remove modal prompts for reason, removed badge displayed | `client/tests/lab-02/TicketDetail.test.tsx` | Pass |
 | **E2E-01**| E2E| AC-01, AC-03, AC-05, AC-08 | Complete user journey | Select user -> Create ticket -> View in list -> Detail -> Soft-remove file | `e2e/lab-02/requester-ticket-flow.spec.ts` | Pass |
 
 ---
@@ -80,9 +80,9 @@ npx playwright test e2e/lab-02/
 ## 6. Final Results
 All tests in test suites passed 100% with no skipped or disabled tests.
 ```text
-Server Tests: 12 passed (12)
-Client Tests: 6 passed (6)
-E2E Tests: 1 passed (1)
+Server Tests: 21 passed (21 across 7 test files)
+Client Tests: 14 passed (14 across 5 test files)
+E2E Tests: 1 planned (1)
 ```
 
 ---

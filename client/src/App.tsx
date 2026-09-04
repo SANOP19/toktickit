@@ -5,12 +5,14 @@ import { Navbar } from "./components/Navbar.js";
 import { DevRequesterSelector } from "./components/DevRequesterSelector.js";
 import { CreateTicket } from "./components/CreateTicket.js";
 import { MyTickets } from "./components/MyTickets.js";
+import TicketDetail from "./components/TicketDetail.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 
 export function AppContent() {
   const { selectedRequester } = useRequester();
   const [currentTab, setCurrentTab] = useState<"my-tickets" | "create-ticket" | "select-requester">("my-tickets");
+  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [isChangingRequester, setIsChangingRequester] = useState(false);
 
   // System check state (retained from Lab 1)
@@ -35,8 +37,9 @@ export function AppContent() {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F5F7F6" }}>
       <Navbar
-        currentTab={currentTab}
+        currentTab={selectedTicketId !== null ? "my-tickets" : currentTab}
         onTabChange={(tab) => {
+          setSelectedTicketId(null);
           setCurrentTab(tab);
           setIsChangingRequester(false);
         }}
@@ -46,8 +49,17 @@ export function AppContent() {
       <main className="container py-4" style={{ maxWidth: 1000 }}>
         {isChangingRequester ? (
           <DevRequesterSelector
-            onSelectComplete={() => setIsChangingRequester(false)}
+            onSelectComplete={() => {
+              setSelectedTicketId(null);
+              setIsChangingRequester(false);
+            }}
             onCancel={() => setIsChangingRequester(false)}
+          />
+        ) : selectedTicketId !== null && selectedRequester ? (
+          <TicketDetail
+            ticketId={selectedTicketId}
+            currentRequester={selectedRequester}
+            onBack={() => setSelectedTicketId(null)}
           />
         ) : (
           <>
@@ -102,14 +114,24 @@ export function AppContent() {
             {/* Tab Content Display */}
             {currentTab === "my-tickets" && (
               <MyTickets
-                onCreateClick={() => setCurrentTab("create-ticket")}
+                onCreateClick={() => {
+                  setSelectedTicketId(null);
+                  setCurrentTab("create-ticket");
+                }}
+                onSelectTicket={(t) => setSelectedTicketId(t.id)}
               />
             )}
 
             {currentTab === "create-ticket" && (
               <CreateTicket
-                onSuccess={() => setCurrentTab("my-tickets")}
-                onCancel={() => setCurrentTab("my-tickets")}
+                onSuccess={() => {
+                  setSelectedTicketId(null);
+                  setCurrentTab("my-tickets");
+                }}
+                onCancel={() => {
+                  setSelectedTicketId(null);
+                  setCurrentTab("my-tickets");
+                }}
               />
             )}
           </>

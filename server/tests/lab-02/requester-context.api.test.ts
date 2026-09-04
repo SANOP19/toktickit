@@ -13,7 +13,7 @@ describe("Lab 2 Issue 2: Context Reference APIs", () => {
         { id: 4, name: "David Lee", email: "david.l@example.com" },
       ];
 
-      vi.spyOn(getPrisma().requesterUser, "findMany").mockImplementation(async (args?: any) => {
+      (vi.spyOn(getPrisma().requesterUser, "findMany") as any).mockImplementation(async (args?: any) => {
         if (args?.where?.isActive === true) {
           return mockActiveRequesters as any;
         }

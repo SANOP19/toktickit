@@ -24,7 +24,7 @@ describe("Lab 2 Issue 3: Ticket Creation API (POST /api/tickets)", () => {
 
     vi.spyOn(getPrisma().ticket, "count").mockResolvedValue(4);
 
-    vi.spyOn(getPrisma().ticket, "create").mockImplementation(async (args: any) => {
+    (vi.spyOn(getPrisma().ticket, "create") as any).mockImplementation(async (args: any) => {
       return {
         id: 5,
         ...args.data,

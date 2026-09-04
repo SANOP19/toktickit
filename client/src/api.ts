@@ -1,8 +1,8 @@
-import { Category, RelatedSystem, RequesterUser } from "./types";
+import { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
-export type { Category, RelatedSystem, RequesterUser };
+export type { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority };
 
 export interface SystemStatus {
   online: boolean;
@@ -98,6 +98,63 @@ export async function fetchTickets(params: {
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || "Failed to load tickets");
+  }
+  return res.json();
+}
+
+export async function getTicketDetail(ticketId: number, requesterId: number): Promise<Ticket> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}?requesterId=${requesterId}`);
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to load ticket details");
+  }
+  return res.json();
+}
+
+export async function uploadAttachment(
+  ticketId: number,
+  requesterId: number,
+  file: File
+): Promise<Attachment> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("requesterId", String(requesterId));
+
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/attachments`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to upload attachment");
+  }
+  return res.json();
+}
+
+export function getAttachmentDownloadUrl(
+  ticketId: number,
+  attachmentId: number,
+  requesterId: number
+): string {
+  return `${API_URL}/api/tickets/${ticketId}/attachments/${attachmentId}/download?requesterId=${requesterId}`;
+}
+
+export async function softRemoveAttachment(
+  ticketId: number,
+  attachmentId: number,
+  requesterId: number,
+  reason: string
+): Promise<Attachment> {
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/attachments/${attachmentId}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ requesterId, reason }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to remove attachment");
   }
   return res.json();
 }
