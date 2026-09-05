@@ -30,7 +30,8 @@ Throughout the entire Lab 2 sprint, our engineering pair strictly followed the 5
 | **Issue 3** | `feature/3-ticket-creation` | #17 | [PR #17](https://github.com/SANOP19/toktickit/pull/17) | @Beethoven190 | **Approved** | @Beethoven190 |
 | **Issue 4** | `feature/4-my-tickets` | #18 | [PR #18](https://github.com/SANOP19/toktickit/pull/18) | @Beethoven190 | **Approved** | @Beethoven190 |
 | **Issue 5** | `feature/5-ticket-detail-attachments` | #19 | [PR #19](https://github.com/SANOP19/toktickit/pull/19) | @Beethoven190 | **Approved** | @Beethoven190 |
-| **Issue 6** | `feature/6-e2e-polish` | #20 | [PR #20](https://github.com/SANOP19/toktickit/pull/20) | @Beethoven190 | **Pending Review** | @Beethoven190 |
+| **Issue 6** | `feature/6-e2e-polish` | #20 | [PR #20](https://github.com/SANOP19/toktickit/pull/20) | @Beethoven190 | **Approved** | @Beethoven190 |
+| **Release** | `lab2-staging` | #21 | [PR #21](https://github.com/SANOP19/toktickit/pull/21) | @Beethoven190 | **Approved** | @Beethoven190 |
 
 ### Detailed Evaluation of Author PRs:
 
@@ -59,6 +60,16 @@ Throughout the entire Lab 2 sprint, our engineering pair strictly followed the 5
 - **Review Feedback:** Verified soft-removal workflow: file moves to audit history, reason is displayed, and downloads are strictly blocked (BR-11, AC-08, AC-09).
 - **Outcome:** Approved and merged by @Beethoven190 into `lab2-staging`.
 
+#### PR #20 (Issue 6: Playwright E2E Test Suite & Documentation Finalization)
+- **Author Summary:** Added Playwright E2E configuration and user journey test (`e2e/lab-02/requester-ticket-flow.spec.ts`), finalized `reviewer.md`, `ai-use.md`, and test execution outputs in `tests.md` with 35/35 passing tests.
+- **Review Feedback:** Verified full user journey test coverage, documentation completeness, and 100% test pass rate.
+- **Outcome:** Approved and merged by @Beethoven190 into `lab2-staging`.
+
+#### PR #21 (Final Release: Merge `lab2-staging` into `main`)
+- **Author Summary:** Final release PR delivering the complete Lab 2 product increment to `main`.
+- **Review Feedback:** Verified all 6 feature issues merged, git flow followed, and clean test runs on release branch.
+- **Outcome:** Approved and merged by @Beethoven190 into `main`.
+
 ---
 
 ## 3. PRs Reviewed & Merged by @SANOP19 (As Reviewer)
@@ -74,6 +85,8 @@ As part of collaborative peer review, @SANOP19 conducted comprehensive code revi
 | **@Beethoven190** | Beethoven190/toktickit | [PR #18](https://github.com/Beethoven190/toktickit/pull/18) | Issue 5: Ticket Detail & Attachments | **Approved** | @SANOP19 |
 | **@Beethoven190** | Beethoven190/toktickit | [PR #20](https://github.com/Beethoven190/toktickit/pull/20) | Issue 6: Finalize docs & tests | **Approved** | @SANOP19 |
 | **@Sxr1n** | Sxr1n/toktickit | [PR #19](https://github.com/Sxr1n/toktickit/pull/19) | Issue 2/3: Create Ticket & Models | **Approved** | @SANOP19 |
+| **@FramePongrit** | FramePongrit/toktickit | [PR #22](https://github.com/FramePongrit/toktickit/pull/22) | Issue 4: My Tickets List API | **Approved** | @SANOP19 |
+| **@FramePongrit** | FramePongrit/toktickit | [PR #36](https://github.com/FramePongrit/toktickit/pull/36) | Issue 6: Playwright E2E & Screenshot Evidence | **Approved** | @SANOP19 |
 
 ---
 
