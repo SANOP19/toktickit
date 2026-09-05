@@ -78,15 +78,15 @@ As part of collaborative peer review, @SANOP19 conducted comprehensive code revi
 
 | Author | Repository | PR # | Issue Reviewed | Review Decision | Merged By |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **@Beethoven190** | Beethoven190/toktickit | [PR #10](https://github.com/Beethoven190/toktickit/pull/10) | Issue 1: Engineering Contract | **Approved** | @SANOP19 |
-| **@Beethoven190** | Beethoven190/toktickit | [PR #12](https://github.com/Beethoven190/toktickit/pull/12) | Issue 2: Requester Context | **Approved** | @SANOP19 |
-| **@Beethoven190** | Beethoven190/toktickit | [PR #14](https://github.com/Beethoven190/toktickit/pull/14) | Issue 3: Ticket Creation Screen | **Approved** | @SANOP19 |
-| **@Beethoven190** | Beethoven190/toktickit | [PR #16](https://github.com/Beethoven190/toktickit/pull/16) | Issue 4: My Tickets List & Filters | **Approved** | @SANOP19 |
-| **@Beethoven190** | Beethoven190/toktickit | [PR #18](https://github.com/Beethoven190/toktickit/pull/18) | Issue 5: Ticket Detail & Attachments | **Approved** | @SANOP19 |
-| **@Beethoven190** | Beethoven190/toktickit | [PR #20](https://github.com/Beethoven190/toktickit/pull/20) | Issue 6: Finalize docs & tests | **Approved** | @SANOP19 |
-| **@Sxr1n** | Sxr1n/toktickit | [PR #19](https://github.com/Sxr1n/toktickit/pull/19) | Issue 2/3: Create Ticket & Models | **Approved** | @SANOP19 |
-| **@FramePongrit** | FramePongrit/toktickit | [PR #22](https://github.com/FramePongrit/toktickit/pull/22) | Issue 4: My Tickets List API | **Approved** | @SANOP19 |
-| **@FramePongrit** | FramePongrit/toktickit | [PR #36](https://github.com/FramePongrit/toktickit/pull/36) | Issue 6: Playwright E2E & Screenshot Evidence | **Approved** | @SANOP19 |
+| **@Beethoven190** | Beethoven190/toktickit | [PR #10](https://github.com/Beethoven190/toktickit/pull/10) | Issue 1: Engineering Contract | **Approved & Merged** | @SANOP19 |
+| **@Beethoven190** | Beethoven190/toktickit | [PR #12](https://github.com/Beethoven190/toktickit/pull/12) | Issue 2: Requester Context | **Approved & Merged** | @SANOP19 |
+| **@Beethoven190** | Beethoven190/toktickit | [PR #14](https://github.com/Beethoven190/toktickit/pull/14) | Issue 3: Ticket Creation Screen | **Approved & Merged** | @SANOP19 |
+| **@Beethoven190** | Beethoven190/toktickit | [PR #16](https://github.com/Beethoven190/toktickit/pull/16) | Issue 4: My Tickets List & Filters | **Approved & Merged** | @SANOP19 |
+| **@Beethoven190** | Beethoven190/toktickit | [PR #18](https://github.com/Beethoven190/toktickit/pull/18) | Issue 5: Ticket Detail & Attachments | **Approved & Merged** | @SANOP19 |
+| **@Beethoven190** | Beethoven190/toktickit | [PR #20](https://github.com/Beethoven190/toktickit/pull/20) | Issue 6: Finalize docs & tests | **Approved & Merged** | @SANOP19 |
+| **@Sxr1n** | Sxr1n/toktickit | [PR #19](https://github.com/Sxr1n/toktickit/pull/19) | Issue 2/3: Create Ticket & Models | **Approved & Merged** | @SANOP19 |
+| **@FramePongrit** | FramePongrit/toktickit | [PR #22](https://github.com/FramePongrit/toktickit/pull/22) | Issue 4: My Tickets List API | **Approved & Merged** | @SANOP19 |
+| **@FramePongrit** | FramePongrit/toktickit | [PR #36](https://github.com/FramePongrit/toktickit/pull/36) | Issue 6: Playwright E2E & Screenshot Evidence | **Approved & Merged** | @SANOP19 |
 
 ---
 
