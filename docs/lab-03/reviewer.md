@@ -28,7 +28,7 @@ Throughout Sprint 3, our engineering team strictly enforces the core course coll
 | Issue # | Feature Branch | PR # | PR Link | Target Branch | Reviewer | Review Decision | Merged By |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Issue 1** | `feature/1-sprint3-spec` | #22 | [PR #22](https://github.com/SANOP19/toktickit/pull/22) | `lab3-staging` | @Beethoven190 | Approved | @Beethoven190 |
-| **Issue 2** | `feature/2-auth-foundation` | #25 | [PR #25](https://github.com/SANOP19/toktickit/pull/25) | `lab3-staging` | Assigned Collaborator | Pending Review | Pending |
+| **Issue 2** | `feature/2-auth-foundation` | #25 | [PR #25](https://github.com/SANOP19/toktickit/pull/25) | `lab3-staging` | @Beethoven190 | Approved | @Beethoven190 |
 | **Issue 3** | `feature/3-requester-continuation` | TBD | [PR Link](https://github.com/SANOP19/toktickit/pulls) | `lab3-staging` | Assigned Collaborator | Pending | Pending |
 | **Issue 4** | `feature/4-staff-queue` | TBD | [PR Link](https://github.com/SANOP19/toktickit/pulls) | `lab3-staging` | Assigned Collaborator | Pending | Pending |
 | **Issue 5** | `feature/5-staff-ticket-detail` | TBD | [PR Link](https://github.com/SANOP19/toktickit/pulls) | `lab3-staging` | Assigned Collaborator | Pending | Pending |
@@ -44,7 +44,7 @@ Throughout Sprint 3, our engineering team strictly enforces the core course coll
 | Peer Author | Peer Repo | PR # | Issue Reviewed | Review Decision | Merged By |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | @Beethoven190 | `Beethoven190/toktickit` | #23 | Issue 1: Sprint 3 Engineering Contract | **Approved** | @SANOP19 |
-| @Beethoven190 | `Beethoven190/toktickit` | TBD | Issue 2: Authentication Foundation | Pending | @SANOP19 |
+| @Beethoven190 | `Beethoven190/toktickit` | #25 | Issue 2: Authentication Foundation | **Approved** | @SANOP19 |
 | @Beethoven190 | `Beethoven190/toktickit` | TBD | Issue 3: Requester Continuation | Pending | @SANOP19 |
 | @Beethoven190 | `Beethoven190/toktickit` | TBD | Issue 4: IT Staff Ticket Queue | Pending | @SANOP19 |
 | @Beethoven190 | `Beethoven190/toktickit` | TBD | Issue 5: IT Staff Ticket Detail | Pending | @SANOP19 |
