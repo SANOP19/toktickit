@@ -30,7 +30,7 @@ Throughout Sprint 3, our engineering team strictly enforces the core course coll
 | **Issue 1** | `feature/1-sprint3-spec` | #22 | [PR #22](https://github.com/SANOP19/toktickit/pull/22) | `lab3-staging` | @Beethoven190 | Approved | @Beethoven190 |
 | **Issue 2** | `feature/2-auth-foundation` | #25 | [PR #25](https://github.com/SANOP19/toktickit/pull/25) | `lab3-staging` | @Beethoven190 | Approved | @Beethoven190 |
 | **Issue 3** | `feature/3-requester-continuation` | #27 | [PR #27](https://github.com/SANOP19/toktickit/pull/27) | `lab3-staging` | @Beethoven190 | Approved | @Beethoven190 |
-| **Issue 4** | `feature/4-staff-queue` | TBD | [PR Link](https://github.com/SANOP19/toktickit/pulls) | `lab3-staging` | Assigned Collaborator | Pending | Pending |
+| **Issue 4** | `feature/4-staff-queue` | #29 | [PR #29](https://github.com/SANOP19/toktickit/pull/29) | `lab3-staging` | @Beethoven190 | Under Review | Pending |
 | **Issue 5** | `feature/5-staff-ticket-detail` | TBD | [PR Link](https://github.com/SANOP19/toktickit/pulls) | `lab3-staging` | Assigned Collaborator | Pending | Pending |
 | **Issue 6** | `feature/6-admin-user-management` | TBD | [PR Link](https://github.com/SANOP19/toktickit/pulls) | `lab3-staging` | Assigned Collaborator | Pending | Pending |
 | **Release** | `feature/7-docs-e2e-release` | TBD | [PR Link](https://github.com/SANOP19/toktickit/pulls) | `main` | Assigned Collaborator | Pending | Pending |
