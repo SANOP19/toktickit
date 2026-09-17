@@ -158,3 +158,100 @@ export async function softRemoveAttachment(
   }
   return res.json();
 }
+
+// ---------------------------------------------------------------------------
+// Lab 3 Authentication API Clients
+// ---------------------------------------------------------------------------
+export const TOKEN_STORAGE_KEY = "toktickit_auth_token";
+
+export function getAuthToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setAuthToken(token: string): void {
+  try {
+    localStorage.setItem(TOKEN_STORAGE_KEY, token);
+  } catch {}
+}
+
+export function removeAuthToken(): void {
+  try {
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+  } catch {}
+}
+
+export async function loginApi(email: string, password: string): Promise<{ token: string; user: any }> {
+  const res = await fetch(`${API_URL}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.error || "Login failed. Please check credentials.";
+    const code = data?.error?.code || "AUTH_FAILED";
+    const err = new Error(errorMsg);
+    (err as any).code = code;
+    throw err;
+  }
+
+  setAuthToken(data.token);
+  return data;
+}
+
+export async function getMeApi(token: string): Promise<any> {
+  const res = await fetch(`${API_URL}/api/auth/me`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to fetch user profile");
+  }
+  return data.user;
+}
+
+export async function logoutApi(token: string): Promise<void> {
+  try {
+    await fetch(`${API_URL}/api/auth/logout`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } finally {
+    removeAuthToken();
+  }
+}
+
+export async function changePasswordApi(
+  currentPassword: string,
+  newPassword: string,
+  confirmPassword: string,
+  token: string
+): Promise<{ token: string; user: any }> {
+  const res = await fetch(`${API_URL}/api/auth/change-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || "Failed to change password";
+    throw new Error(errorMsg);
+  }
+
+  setAuthToken(data.token);
+  return data;
+}

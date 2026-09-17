@@ -1,19 +1,36 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { checkSystem, Category } from "./api.js";
 import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
+import { AuthProvider, useAuth } from "./context/AuthContext.js";
 import { Navbar } from "./components/Navbar.js";
 import { DevRequesterSelector } from "./components/DevRequesterSelector.js";
 import { CreateTicket } from "./components/CreateTicket.js";
 import { MyTickets } from "./components/MyTickets.js";
 import TicketDetail from "./components/TicketDetail.js";
+import { LoginScreen } from "./components/LoginScreen.js";
+import { MandatoryPasswordChangeModal } from "./components/MandatoryPasswordChangeModal.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 
 export function AppContent() {
-  const { selectedRequester } = useRequester();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const { selectedRequester, setSelectedRequester } = useRequester();
   const [currentTab, setCurrentTab] = useState<"my-tickets" | "create-ticket" | "select-requester">("my-tickets");
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [isChangingRequester, setIsChangingRequester] = useState(false);
+
+  // Sync authenticated user with RequesterContext only when user changes
+  const prevUserIdRef = React.useRef<number | null>(null);
+  useEffect(() => {
+    if (user && user.role === "REQUESTER" && prevUserIdRef.current !== user.id) {
+      prevUserIdRef.current = user.id;
+      setSelectedRequester({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      });
+    }
+  }, [user, setSelectedRequester]);
 
   // System check state (retained from Lab 1)
   const [state, setState] = useState<UiState>("idle");
@@ -34,8 +51,23 @@ export function AppContent() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="d-flex align-items-center justify-content-center vh-100" style={{ backgroundColor: "#F5F7F6" }}>
+        <div className="spinner-border text-success" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginScreen />;
+  }
+
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F5F7F6" }}>
+      <MandatoryPasswordChangeModal />
       <Navbar
         currentTab={selectedTicketId !== null ? "my-tickets" : currentTab}
         onTabChange={(tab) => {
@@ -143,8 +175,10 @@ export function AppContent() {
 
 export default function App() {
   return (
-    <RequesterProvider>
-      <AppContent />
-    </RequesterProvider>
+    <AuthProvider>
+      <RequesterProvider>
+        <AppContent />
+      </RequesterProvider>
+    </AuthProvider>
   );
 }

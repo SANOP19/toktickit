@@ -1,12 +1,12 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import multer from "multer";
 import path from "node:path";
 import fs from "node:fs";
+import bcrypt from "bcryptjs";
 import { getPrisma } from "./prisma.js";
-// getPrisma() is your lazy database handle. Call it INSIDE a route when you
-// need the DB (Issue 4). It is intentionally unused until then.
-void getPrisma;
+import { generateToken, verifyToken, hashPassword, comparePassword } from "./utils/auth.js";
+import { authenticateToken, requireActive, requirePasswordChanged, requireRole } from "./middleware/auth.js";
 
 // [App Setup] Export Express app instance for server runtime & testing
 export const app = express();
@@ -14,6 +14,33 @@ export const app = express();
 // [Middleware Setup] Enable CORS for frontend and JSON body parsing
 app.use(cors());          // already wired: lets the Vite dev server call this API
 app.use(express.json());
+
+// [Auth & Quarantine Global Interceptor]
+// Intercepts authenticated requests and applies mandatory first-login password change quarantine (BR-02, AC-02)
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.split(" ")[1];
+    const payload = verifyToken(token);
+    if (payload) {
+      req.user = payload;
+      // If user must change password, quarantine all routes except change-password & logout
+      if (payload.mustChangePassword) {
+        const allowedPaths = ["/api/auth/change-password", "/api/auth/logout"];
+        if (!allowedPaths.includes(req.path)) {
+          res.status(403).json({
+            error: {
+              code: "PASSWORD_CHANGE_REQUIRED",
+              message: "You must change your initial password before accessing the system.",
+            },
+          });
+          return;
+        }
+      }
+    }
+  }
+  next();
+});
 
 // ---------------------------------------------------------------------------
 // [Multer Storage Setup] Attachment file uploads (Lab 2 Issue 5)
@@ -129,12 +156,342 @@ export const inMemoryTickets: any[] = [...sampleTickets];
 export const inMemoryAttachments: any[] = [];
 
 // ---------------------------------------------------------------------------
+// In-Memory Storage for Users (Offline Auth Fallback)
+// ---------------------------------------------------------------------------
+const defaultPasswordHash = bcrypt.hashSync("Password123!", 10);
+
+export const inMemoryUsers = [
+  {
+    id: 1,
+    name: "Jennifer Anderson",
+    email: "jennifer.a@example.com",
+    passwordHash: defaultPasswordHash,
+    role: "REQUESTER" as const,
+    isActive: true,
+    mustChangePassword: false,
+  },
+  {
+    id: 2,
+    name: "Michael Brown",
+    email: "michael.b@example.com",
+    passwordHash: defaultPasswordHash,
+    role: "REQUESTER" as const,
+    isActive: true,
+    mustChangePassword: false,
+  },
+  {
+    id: 3,
+    name: "Sarah Johnson",
+    email: "sarah.j@example.com",
+    passwordHash: defaultPasswordHash,
+    role: "REQUESTER" as const,
+    isActive: true,
+    mustChangePassword: false,
+  },
+  {
+    id: 4,
+    name: "David Lee",
+    email: "david.l@example.com",
+    passwordHash: defaultPasswordHash,
+    role: "REQUESTER" as const,
+    isActive: true,
+    mustChangePassword: false,
+  },
+  {
+    id: 5,
+    name: "Metier Leviathan",
+    email: "metier.l@example.com",
+    passwordHash: defaultPasswordHash,
+    role: "REQUESTER" as const,
+    isActive: false,
+    mustChangePassword: false,
+  },
+  {
+    id: 6,
+    name: "Alex Thompson",
+    email: "tech.alex@example.com",
+    passwordHash: defaultPasswordHash,
+    role: "IT_STAFF" as const,
+    isActive: true,
+    mustChangePassword: false,
+  },
+  {
+    id: 7,
+    name: "Lisa Martinez",
+    email: "tech.lisa@example.com",
+    passwordHash: defaultPasswordHash,
+    role: "IT_STAFF" as const,
+    isActive: true,
+    mustChangePassword: false,
+  },
+  {
+    id: 8,
+    name: "Kevin Patel",
+    email: "tech.kevin@example.com",
+    passwordHash: defaultPasswordHash,
+    role: "IT_STAFF" as const,
+    isActive: true,
+    mustChangePassword: false,
+  },
+  {
+    id: 9,
+    name: "Robert Wilson",
+    email: "tech.retired@example.com",
+    passwordHash: defaultPasswordHash,
+    role: "IT_STAFF" as const,
+    isActive: false,
+    mustChangePassword: false,
+  },
+  {
+    id: 10,
+    name: "John Smith",
+    email: "admin.john@example.com",
+    passwordHash: defaultPasswordHash,
+    role: "ADMINISTRATOR" as const,
+    isActive: true,
+    mustChangePassword: false,
+  },
+  {
+    id: 11,
+    name: "Amanda Clark",
+    email: "new.user@example.com",
+    passwordHash: defaultPasswordHash,
+    role: "REQUESTER" as const,
+    isActive: true,
+    mustChangePassword: true,
+  },
+];
+
+// ---------------------------------------------------------------------------
 // [Route: Health Check] Issue 2 — API health check endpoint
 // Make the test in tests/lab-01/health.test.ts pass.
 // It must return HTTP 200 with JSON: { status: "ok", service: "TokTickIT API" }
 // ---------------------------------------------------------------------------
 app.get("/api/health", (_req: Request, res: Response) => {
   res.status(200).json({ status: "ok", service: "TokTickIT API" });
+});
+
+// ---------------------------------------------------------------------------
+// [Authentication Endpoints] Lab 3 Issue 2 (AC-01, AC-02, BR-01, BR-02)
+// ---------------------------------------------------------------------------
+
+// POST /api/auth/login
+app.post("/api/auth/login", async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password || typeof email !== "string" || typeof password !== "string") {
+      res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Email and password are required.",
+        },
+      });
+      return;
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    let user: any = null;
+
+    try {
+      user = await getPrisma().user.findUnique({
+        where: { email: normalizedEmail },
+      });
+    } catch {
+      // Prisma offline, fallback to inMemoryUsers
+    }
+
+    if (!user) {
+      user = inMemoryUsers.find((u) => u.email.toLowerCase() === normalizedEmail);
+    }
+
+    if (!user) {
+      res.status(401).json({
+        error: {
+          code: "INVALID_CREDENTIALS",
+          message: "Invalid email or password.",
+        },
+      });
+      return;
+    }
+
+    // Inactive account check (BR-01, AC-02)
+    if (!user.isActive) {
+      res.status(401).json({
+        error: {
+          code: "ACCOUNT_INACTIVE",
+          message: "Account is inactive. Please contact system administrator.",
+        },
+      });
+      return;
+    }
+
+    // Password verification with bcrypt
+    const passwordMatch = await comparePassword(password, user.passwordHash);
+    if (!passwordMatch) {
+      res.status(401).json({
+        error: {
+          code: "INVALID_CREDENTIALS",
+          message: "Invalid email or password.",
+        },
+      });
+      return;
+    }
+
+    const token = generateToken({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      isActive: user.isActive,
+      mustChangePassword: user.mustChangePassword,
+    });
+
+    res.status(200).json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+        mustChangePassword: user.mustChangePassword,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "An unexpected error occurred during authentication.",
+      },
+    });
+  }
+});
+
+// GET /api/auth/me
+app.get("/api/auth/me", authenticateToken, (req: Request, res: Response) => {
+  res.status(200).json({
+    user: req.user,
+  });
+});
+
+// POST /api/auth/logout
+app.post("/api/auth/logout", authenticateToken, (_req: Request, res: Response) => {
+  res.status(200).json({
+    message: "Successfully logged out.",
+  });
+});
+
+// POST /api/auth/change-password
+app.post("/api/auth/change-password", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Current password, new password, and confirm password are required.",
+        },
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "New password and confirm password do not match.",
+        },
+      });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Password must be at least 8 characters long.",
+        },
+      });
+      return;
+    }
+
+    const userId = req.user!.id;
+    let user: any = null;
+
+    try {
+      user = await getPrisma().user.findUnique({ where: { id: userId } });
+    } catch {}
+
+    if (!user) {
+      user = inMemoryUsers.find((u) => u.id === userId);
+    }
+
+    if (!user) {
+      res.status(404).json({
+        error: {
+          code: "USER_NOT_FOUND",
+          message: "User not found.",
+        },
+      });
+      return;
+    }
+
+    const isCurrentValid = await comparePassword(currentPassword, user.passwordHash);
+    if (!isCurrentValid) {
+      res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Current password is incorrect.",
+        },
+      });
+      return;
+    }
+
+    const newHash = await hashPassword(newPassword);
+    user.passwordHash = newHash;
+    user.mustChangePassword = false;
+
+    try {
+      await getPrisma().user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash: newHash,
+          mustChangePassword: false,
+        },
+      });
+    } catch {}
+
+    const newToken = generateToken({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      isActive: user.isActive,
+      mustChangePassword: false,
+    });
+
+    res.status(200).json({
+      message: "Password changed successfully.",
+      mustChangePassword: false,
+      token: newToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+        mustChangePassword: false,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "An unexpected error occurred while changing password.",
+      },
+    });
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -165,7 +522,8 @@ app.get("/api/categories", async (_req: Request, res: Response) => {
 // [Route: Development Requesters] Lab 2 Issue 2 — list active requesters
 app.get("/api/dev-requesters", async (_req: Request, res: Response) => {
   try {
-    const requesters = await getPrisma().requesterUser.findMany({
+    const prismaAny = getPrisma() as any;
+    const requesters = await (prismaAny.user || prismaAny.requesterUser).findMany({
       where: { isActive: true },
       orderBy: { id: "asc" },
       select: { id: true, name: true, email: true },
@@ -211,13 +569,18 @@ app.get("/api/related-systems", async (_req: Request, res: Response) => {
 app.post("/api/tickets", async (req: Request, res: Response) => {
   try {
     const {
-      requesterId,
       categoryId,
       relatedSystemId,
       summary,
       description,
       requestedPriority = "MEDIUM",
     } = req.body;
+
+    // Authenticated identity determines requesterId (BR-03, AC-03)
+    let requesterId = req.body.requesterId;
+    if (req.user && req.user.role === "REQUESTER") {
+      requesterId = req.user.id;
+    }
 
     // Field-level validations
     const errors: Record<string, string> = {};
@@ -254,7 +617,8 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
 
     // Verify requester active status
     try {
-      const requester = await getPrisma().requesterUser.findUnique({
+      const prismaAny = getPrisma() as any;
+      const requester = await (prismaAny.user || prismaAny.requesterUser).findUnique({
         where: { id: requesterId },
       });
       if (requester && !requester.isActive) {
@@ -326,8 +690,11 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
 // [Route: List Tickets] Lab 2 Issue 4 — paginated, filtered tickets by requester
 app.get("/api/tickets", async (req: Request, res: Response) => {
   try {
-    const requesterId = Number(req.query.requesterId);
-    if (!requesterId || isNaN(requesterId)) {
+    let requesterId = Number(req.query.requesterId);
+    // Authenticated identity determines requesterId (BR-03, AC-03)
+    if (req.user && req.user.role === "REQUESTER") {
+      requesterId = req.user.id;
+    } else if (!requesterId || isNaN(requesterId)) {
       res.status(400).json({ error: "requesterId query parameter is required and must be a number." });
       return;
     }

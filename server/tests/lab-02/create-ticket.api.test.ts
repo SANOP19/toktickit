@@ -14,7 +14,7 @@ describe("Lab 2 Issue 3: Ticket Creation API (POST /api/tickets)", () => {
   };
 
   it("creates a ticket successfully and returns 201 with unique ticketNumber and status New (API-01)", async () => {
-    vi.spyOn(getPrisma().requesterUser, "findUnique").mockResolvedValue({
+    vi.spyOn((getPrisma() as any).requesterUser, "findUnique").mockResolvedValue({
       id: 1,
       name: "Jennifer Anderson",
       email: "jennifer.a@example.com",
@@ -63,7 +63,7 @@ describe("Lab 2 Issue 3: Ticket Creation API (POST /api/tickets)", () => {
   });
 
   it("rejects ticket creation for an inactive requester with 400 (API-03)", async () => {
-    vi.spyOn(getPrisma().requesterUser, "findUnique").mockResolvedValue({
+    vi.spyOn((getPrisma() as any).requesterUser, "findUnique").mockResolvedValue({
       id: 5,
       name: "Inactive Test User",
       email: "inactive.user@example.com",
