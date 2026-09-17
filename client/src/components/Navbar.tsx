@@ -3,8 +3,8 @@ import { useRequester } from "../context/RequesterContext";
 import { useAuth } from "../context/AuthContext";
 
 interface NavbarProps {
-  currentTab: "my-tickets" | "create-ticket" | "select-requester";
-  onTabChange: (tab: "my-tickets" | "create-ticket" | "select-requester") => void;
+  currentTab: "my-tickets" | "create-ticket" | "staff-queue" | "select-requester";
+  onTabChange: (tab: "my-tickets" | "create-ticket" | "staff-queue" | "select-requester") => void;
   onOpenRequesterModal: () => void;
 }
 
@@ -29,6 +29,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     ADMINISTRATOR: "Admin",
   };
 
+  const isStaffOrAdmin = user?.role === "IT_STAFF" || user?.role === "ADMINISTRATOR";
+
   return (
     <nav
       className="navbar navbar-expand-lg navbar-dark shadow-sm px-3 py-2"
@@ -38,7 +40,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Brand */}
         <button
           className="navbar-brand d-flex align-items-center gap-2 fw-bold text-white btn btn-link text-decoration-none p-0"
-          onClick={() => onTabChange("my-tickets")}
+          onClick={() => onTabChange(isStaffOrAdmin ? "staff-queue" : "my-tickets")}
         >
           <span
             className="d-inline-flex align-items-center justify-content-center rounded-circle bg-white"
@@ -51,31 +53,52 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Navigation Links */}
         <div className="d-flex align-items-center gap-2 me-auto ms-3">
-          <button
-            className={`btn btn-sm text-white px-3 py-1 rounded-pill ${
-              currentTab === "my-tickets" ? "fw-bold shadow-sm" : "opacity-75"
-            }`}
-            style={{
-              backgroundColor: currentTab === "my-tickets" ? "#0B7A46" : "transparent",
-              border: "1px solid rgba(255,255,255,0.2)",
-            }}
-            onClick={() => onTabChange("my-tickets")}
-          >
-            📋 My Tickets
-          </button>
-          <button
-            data-testid="nav-create-ticket"
-            className={`btn btn-sm text-white px-3 py-1 rounded-pill ${
-              currentTab === "create-ticket" ? "fw-bold shadow-sm" : "opacity-75"
-            }`}
-            style={{
-              backgroundColor: currentTab === "create-ticket" ? "#0B7A46" : "transparent",
-              border: "1px solid rgba(255,255,255,0.2)",
-            }}
-            onClick={() => onTabChange("create-ticket")}
-          >
-            ➕ Create Ticket
-          </button>
+          {(!user || user.role === "REQUESTER") && (
+            <>
+              <button
+                className={`btn btn-sm text-white px-3 py-1 rounded-pill ${
+                  currentTab === "my-tickets" ? "fw-bold shadow-sm" : "opacity-75"
+                }`}
+                style={{
+                  backgroundColor: currentTab === "my-tickets" ? "#0B7A46" : "transparent",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                }}
+                onClick={() => onTabChange("my-tickets")}
+                data-testid="nav-my-tickets"
+              >
+                📋 My Tickets
+              </button>
+              <button
+                data-testid="nav-create-ticket"
+                className={`btn btn-sm text-white px-3 py-1 rounded-pill ${
+                  currentTab === "create-ticket" ? "fw-bold shadow-sm" : "opacity-75"
+                }`}
+                style={{
+                  backgroundColor: currentTab === "create-ticket" ? "#0B7A46" : "transparent",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                }}
+                onClick={() => onTabChange("create-ticket")}
+              >
+                ➕ Create Ticket
+              </button>
+            </>
+          )}
+
+          {isStaffOrAdmin && (
+            <button
+              data-testid="nav-staff-queue"
+              className={`btn btn-sm text-white px-3 py-1 rounded-pill ${
+                currentTab === "staff-queue" ? "fw-bold shadow-sm" : "opacity-75"
+              }`}
+              style={{
+                backgroundColor: currentTab === "staff-queue" ? "#0B7A46" : "transparent",
+                border: "1px solid rgba(255,255,255,0.2)",
+              }}
+              onClick={() => onTabChange("staff-queue")}
+            >
+              🛠️ Ticket Queue
+            </button>
+          )}
         </div>
 
         {/* User Info / Switcher & Logout */}

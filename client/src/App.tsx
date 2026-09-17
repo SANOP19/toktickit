@@ -9,26 +9,34 @@ import { MyTickets } from "./components/MyTickets.js";
 import TicketDetail from "./components/TicketDetail.js";
 import { LoginScreen } from "./components/LoginScreen.js";
 import { MandatoryPasswordChangeModal } from "./components/MandatoryPasswordChangeModal.js";
+import { StaffTicketQueue } from "./components/StaffTicketQueue.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 
 export function AppContent() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { selectedRequester, setSelectedRequester } = useRequester();
-  const [currentTab, setCurrentTab] = useState<"my-tickets" | "create-ticket" | "select-requester">("my-tickets");
+  const [currentTab, setCurrentTab] = useState<"my-tickets" | "create-ticket" | "select-requester" | "staff-queue">(
+    user?.role === "IT_STAFF" || user?.role === "ADMINISTRATOR" ? "staff-queue" : "my-tickets"
+  );
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [isChangingRequester, setIsChangingRequester] = useState(false);
 
-  // Sync authenticated user with RequesterContext only when user changes
+  // Sync authenticated user with RequesterContext and set default tab
   const prevUserIdRef = React.useRef<number | null>(null);
   useEffect(() => {
-    if (user && user.role === "REQUESTER" && prevUserIdRef.current !== user.id) {
+    if (user && prevUserIdRef.current !== user.id) {
       prevUserIdRef.current = user.id;
-      setSelectedRequester({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-      });
+      if (user.role === "REQUESTER") {
+        setSelectedRequester({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        });
+        setCurrentTab("my-tickets");
+      } else if (user.role === "IT_STAFF" || user.role === "ADMINISTRATOR") {
+        setCurrentTab("staff-queue");
+      }
     }
   }, [user, setSelectedRequester]);
 
@@ -69,7 +77,7 @@ export function AppContent() {
     <div style={{ minHeight: "100vh", backgroundColor: "#F5F7F6" }}>
       <MandatoryPasswordChangeModal />
       <Navbar
-        currentTab={selectedTicketId !== null ? "my-tickets" : currentTab}
+        currentTab={selectedTicketId !== null ? (user?.role === "IT_STAFF" || user?.role === "ADMINISTRATOR" ? "staff-queue" : "my-tickets") : currentTab}
         onTabChange={(tab) => {
           setSelectedTicketId(null);
           setCurrentTab(tab);
@@ -87,10 +95,16 @@ export function AppContent() {
             }}
             onCancel={() => setIsChangingRequester(false)}
           />
-        ) : selectedTicketId !== null && selectedRequester ? (
+        ) : selectedTicketId !== null ? (
           <TicketDetail
             ticketId={selectedTicketId}
-            currentRequester={selectedRequester}
+            currentRequester={
+              selectedRequester || {
+                id: user?.id || 1,
+                name: user?.name || "Staff",
+                email: user?.email || "staff@example.com",
+              }
+            }
             onBack={() => setSelectedTicketId(null)}
           />
         ) : (
@@ -164,6 +178,12 @@ export function AppContent() {
                   setSelectedTicketId(null);
                   setCurrentTab("my-tickets");
                 }}
+              />
+            )}
+
+            {currentTab === "staff-queue" && (
+              <StaffTicketQueue
+                onSelectTicket={(t) => setSelectedTicketId(t.id)}
               />
             )}
           </>
