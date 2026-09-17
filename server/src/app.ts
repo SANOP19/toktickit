@@ -171,6 +171,7 @@ const sampleTickets = [
 export const inMemoryTickets: any[] = [...sampleTickets];
 export const inMemoryAttachments: any[] = [];
 export const inMemoryComments: any[] = [];
+export const inMemoryInternalNotes: any[] = [];
 
 // ---------------------------------------------------------------------------
 // In-Memory Storage for Users (Offline Auth Fallback)
@@ -1620,5 +1621,522 @@ app.get("/api/staff/tickets", async (req: Request, res: Response) => {
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to retrieve staff ticket queue." } });
   }
 });
+
+// ---------------------------------------------------------------------------
+// [Route: Assignable Staff Users] Lab 3 Issue 5 — GET /api/staff/users
+// ---------------------------------------------------------------------------
+app.get("/api/staff/users", async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+      return;
+    }
+    if (req.user.role === "REQUESTER") {
+      res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Forbidden: Requester accounts cannot access staff user directory.",
+        },
+      });
+      return;
+    }
+
+    try {
+      const staffUsers = await getPrisma().user.findMany({
+        where: {
+          role: { in: ["IT_STAFF", "ADMINISTRATOR"] },
+          isActive: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+        },
+        orderBy: { name: "asc" },
+      });
+      res.status(200).json(staffUsers);
+    } catch (_dbErr) {
+      const staffUsers = inMemoryUsers
+        .filter((u) => (u.role === "IT_STAFF" || u.role === "ADMINISTRATOR") && u.isActive)
+        .map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role }));
+      res.status(200).json(staffUsers);
+    }
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to retrieve staff users." } });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// [Route: IT Staff Ticket Detail] Lab 3 Issue 5 — GET /api/staff/tickets/:id
+// ---------------------------------------------------------------------------
+app.get("/api/staff/tickets/:id", async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+      return;
+    }
+    if (req.user.role === "REQUESTER") {
+      res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Forbidden: Requester accounts cannot access IT Staff Ticket Detail.",
+        },
+      });
+      return;
+    }
+
+    const ticketId = Number(req.params.id);
+    if (isNaN(ticketId)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid ticket ID." } });
+      return;
+    }
+
+    try {
+      const ticket = await getPrisma().ticket.findUnique({
+        where: { id: ticketId },
+        include: {
+          category: { select: { id: true, name: true } },
+          relatedSystem: { select: { id: true, name: true } },
+          requester: { select: { id: true, name: true, email: true } },
+          owner: { select: { id: true, name: true, email: true, role: true } },
+          attachments: { orderBy: { createdAt: "asc" } },
+          comments: {
+            include: {
+              author: { select: { id: true, name: true, role: true } },
+            },
+            orderBy: { createdAt: "asc" },
+          },
+          internalNotes: {
+            include: {
+              author: { select: { id: true, name: true, role: true } },
+            },
+            orderBy: { createdAt: "asc" },
+          },
+        },
+      });
+
+      if (!ticket) {
+        res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
+        return;
+      }
+
+      res.status(200).json(ticket);
+    } catch (_dbErr) {
+      const ticket = inMemoryTickets.find((t) => t.id === ticketId);
+      if (!ticket) {
+        res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
+        return;
+      }
+
+      const comments = inMemoryComments.filter((c) => c.ticketId === ticketId);
+      const internalNotes = inMemoryInternalNotes.filter((n) => n.ticketId === ticketId);
+      const attachments = inMemoryAttachments.filter((a) => a.ticketId === ticketId);
+
+      res.status(200).json({
+        ...ticket,
+        attachments,
+        comments,
+        internalNotes,
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to retrieve staff ticket detail." } });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// [Route: Claim / Reassign Ticket] Lab 3 Issue 5 — PATCH /api/staff/tickets/:id/assign
+// ---------------------------------------------------------------------------
+app.patch("/api/staff/tickets/:id/assign", async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+      return;
+    }
+    if (req.user.role === "REQUESTER") {
+      res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Forbidden: Only IT Staff and Administrators can assign tickets.",
+        },
+      });
+      return;
+    }
+
+    const ticketId = Number(req.params.id);
+    if (isNaN(ticketId)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid ticket ID." } });
+      return;
+    }
+
+    const { ownerId } = req.body;
+    let targetOwner: any = null;
+
+    if (ownerId !== null && ownerId !== undefined) {
+      const parsedOwnerId = Number(ownerId);
+      if (isNaN(parsedOwnerId)) {
+        res.status(400).json({ error: { code: "INVALID_OWNER", message: "Invalid owner ID." } });
+        return;
+      }
+
+      try {
+        targetOwner = await getPrisma().user.findUnique({
+          where: { id: parsedOwnerId },
+        });
+      } catch (_dbErr) {
+        targetOwner = inMemoryUsers.find((u) => u.id === parsedOwnerId);
+      }
+
+      if (!targetOwner || !targetOwner.isActive || (targetOwner.role !== "IT_STAFF" && targetOwner.role !== "ADMINISTRATOR")) {
+        res.status(400).json({
+          error: {
+            code: "INVALID_OWNER",
+            message: "Assigned owner must be an active IT Staff or Administrator account.",
+          },
+        });
+        return;
+      }
+    }
+
+    let currentTicket: any = null;
+    try {
+      currentTicket = await getPrisma().ticket.findUnique({
+        where: { id: ticketId },
+      });
+    } catch (_dbErr) {
+      currentTicket = inMemoryTickets.find((t) => t.id === ticketId);
+    }
+
+    if (!currentTicket) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
+      return;
+    }
+
+    // AC-08, BR-09: Auto-advance status from "New" to "Open" when assigned
+    let newStatus = currentTicket.currentStatus;
+    if (currentTicket.currentStatus === "New" && (ownerId !== null && ownerId !== undefined)) {
+      newStatus = "Open";
+    }
+
+    const assignedOwnerId = ownerId !== null && ownerId !== undefined ? Number(ownerId) : null;
+
+    try {
+      const updated = await getPrisma().ticket.update({
+        where: { id: ticketId },
+        data: {
+          ownerId: assignedOwnerId,
+          currentStatus: newStatus,
+        },
+        include: {
+          category: { select: { id: true, name: true } },
+          relatedSystem: { select: { id: true, name: true } },
+          requester: { select: { id: true, name: true, email: true } },
+          owner: { select: { id: true, name: true, email: true, role: true } },
+          attachments: true,
+          comments: { include: { author: { select: { id: true, name: true, role: true } } } },
+          internalNotes: { include: { author: { select: { id: true, name: true, role: true } } } },
+        },
+      });
+      res.status(200).json(updated);
+    } catch (_dbErr) {
+      currentTicket.ownerId = assignedOwnerId;
+      currentTicket.currentStatus = newStatus;
+      currentTicket.owner = targetOwner
+        ? { id: targetOwner.id, name: targetOwner.name, email: targetOwner.email, role: targetOwner.role }
+        : null;
+      res.status(200).json(currentTicket);
+    }
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to assign ticket." } });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// [Route: IT Priority Update] Lab 3 Issue 5 — PATCH /api/staff/tickets/:id/priority
+// ---------------------------------------------------------------------------
+app.patch("/api/staff/tickets/:id/priority", async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+      return;
+    }
+    if (req.user.role === "REQUESTER") {
+      res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Forbidden: Only IT Staff and Administrators can adjust IT Priority.",
+        },
+      });
+      return;
+    }
+
+    const ticketId = Number(req.params.id);
+    if (isNaN(ticketId)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid ticket ID." } });
+      return;
+    }
+
+    const { itPriority } = req.body;
+    const validPriorities = ["LOW", "MEDIUM", "HIGH", "URGENT"];
+    if (!itPriority || typeof itPriority !== "string" || !validPriorities.includes(itPriority.toUpperCase())) {
+      res.status(400).json({
+        error: {
+          code: "INVALID_PRIORITY",
+          message: "IT Priority must be one of: LOW, MEDIUM, HIGH, URGENT.",
+        },
+      });
+      return;
+    }
+
+    const priorityVal = itPriority.toUpperCase();
+
+    try {
+      const updated = await getPrisma().ticket.update({
+        where: { id: ticketId },
+        data: { itPriority: priorityVal },
+        include: {
+          category: { select: { id: true, name: true } },
+          relatedSystem: { select: { id: true, name: true } },
+          requester: { select: { id: true, name: true, email: true } },
+          owner: { select: { id: true, name: true, email: true, role: true } },
+          attachments: true,
+          comments: { include: { author: { select: { id: true, name: true, role: true } } } },
+          internalNotes: { include: { author: { select: { id: true, name: true, role: true } } } },
+        },
+      });
+      res.status(200).json(updated);
+    } catch (_dbErr) {
+      const ticket = inMemoryTickets.find((t) => t.id === ticketId);
+      if (!ticket) {
+        res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
+        return;
+      }
+      ticket.itPriority = priorityVal;
+      res.status(200).json(ticket);
+    }
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to update IT Priority." } });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// [Route: Status Workflow Progression] Lab 3 Issue 5 — PATCH /api/staff/tickets/:id/status
+// ---------------------------------------------------------------------------
+const PERMITTED_STATUS_TRANSITIONS: Record<string, string[]> = {
+  "New": ["Open", "Cancelled"],
+  "Open": ["In Progress", "Cancelled"],
+  "In Progress": ["Waiting for Requester", "Resolved", "Cancelled"],
+  "Waiting for Requester": ["In Progress", "Resolved"],
+  "Resolved": ["Closed", "Reopened"],
+  "Reopened": ["In Progress", "Waiting for Requester", "Resolved"],
+  "Closed": [],
+  "Cancelled": [],
+};
+
+app.patch("/api/staff/tickets/:id/status", async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+      return;
+    }
+    if (req.user.role === "REQUESTER") {
+      res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Forbidden: Only IT Staff and Administrators can transition ticket statuses.",
+        },
+      });
+      return;
+    }
+
+    const ticketId = Number(req.params.id);
+    if (isNaN(ticketId)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid ticket ID." } });
+      return;
+    }
+
+    const { status } = req.body;
+    if (!status || typeof status !== "string") {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Status is required." } });
+      return;
+    }
+
+    let currentTicket: any = null;
+    try {
+      currentTicket = await getPrisma().ticket.findUnique({
+        where: { id: ticketId },
+      });
+    } catch (_dbErr) {
+      currentTicket = inMemoryTickets.find((t) => t.id === ticketId);
+    }
+
+    if (!currentTicket) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
+      return;
+    }
+
+    const allowedNext = PERMITTED_STATUS_TRANSITIONS[currentTicket.currentStatus] || [];
+    if (currentTicket.currentStatus !== status && !allowedNext.includes(status)) {
+      res.status(400).json({
+        error: {
+          code: "INVALID_STATUS_TRANSITION",
+          message: `Cannot transition from '${currentTicket.currentStatus}' to '${status}'. Permitted transitions: ${
+            allowedNext.length > 0 ? allowedNext.join(", ") : "None (terminal state)"
+          }.`,
+        },
+      });
+      return;
+    }
+
+    try {
+      const updated = await getPrisma().ticket.update({
+        where: { id: ticketId },
+        data: { currentStatus: status },
+        include: {
+          category: { select: { id: true, name: true } },
+          relatedSystem: { select: { id: true, name: true } },
+          requester: { select: { id: true, name: true, email: true } },
+          owner: { select: { id: true, name: true, email: true, role: true } },
+          attachments: true,
+          comments: { include: { author: { select: { id: true, name: true, role: true } } } },
+          internalNotes: { include: { author: { select: { id: true, name: true, role: true } } } },
+        },
+      });
+      res.status(200).json(updated);
+    } catch (_dbErr) {
+      currentTicket.currentStatus = status;
+      res.status(200).json(currentTicket);
+    }
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to update ticket status." } });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// [Route: Internal Notes - GET] Lab 3 Issue 5 — GET /api/staff/tickets/:id/notes & /api/tickets/:id/notes
+// ---------------------------------------------------------------------------
+const handleGetInternalNotes = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+      return;
+    }
+    if (req.user.role === "REQUESTER") {
+      res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Forbidden: Requester accounts cannot access internal operational notes.",
+        },
+      });
+      return;
+    }
+
+    const ticketId = Number(req.params.id);
+    if (isNaN(ticketId)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid ticket ID." } });
+      return;
+    }
+
+    try {
+      const notes = await getPrisma().internalNote.findMany({
+        where: { ticketId },
+        orderBy: { createdAt: "asc" },
+        include: {
+          author: { select: { id: true, name: true, role: true } },
+        },
+      });
+      res.status(200).json(notes);
+    } catch (_dbErr) {
+      const notes = inMemoryInternalNotes.filter((n) => n.ticketId === ticketId);
+      res.status(200).json(notes);
+    }
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to retrieve internal notes." } });
+  }
+};
+
+app.get("/api/staff/tickets/:id/notes", handleGetInternalNotes);
+app.get("/api/tickets/:id/notes", handleGetInternalNotes);
+
+// ---------------------------------------------------------------------------
+// [Route: Internal Notes - POST] Lab 3 Issue 5 — POST /api/staff/tickets/:id/notes & /api/tickets/:id/notes
+// ---------------------------------------------------------------------------
+const handlePostInternalNote = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+      return;
+    }
+    if (req.user.role === "REQUESTER") {
+      res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Forbidden: Requester accounts cannot create internal operational notes.",
+        },
+      });
+      return;
+    }
+
+    const ticketId = Number(req.params.id);
+    if (isNaN(ticketId)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid ticket ID." } });
+      return;
+    }
+
+    const { content } = req.body;
+    if (!content || typeof content !== "string" || content.trim().length === 0 || content.trim().length > 2000) {
+      res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Internal note content must be between 1 and 2,000 characters.",
+        },
+      });
+      return;
+    }
+
+    let ticket: any = null;
+    try {
+      ticket = await getPrisma().ticket.findUnique({ where: { id: ticketId } });
+    } catch (_dbErr) {
+      ticket = inMemoryTickets.find((t) => t.id === ticketId);
+    }
+
+    if (!ticket) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
+      return;
+    }
+
+    try {
+      const note = await getPrisma().internalNote.create({
+        data: {
+          ticketId,
+          authorId: req.user.id,
+          content: content.trim(),
+        },
+        include: {
+          author: { select: { id: true, name: true, role: true } },
+        },
+      });
+      res.status(201).json(note);
+    } catch (_dbErr) {
+      const newNote = {
+        id: inMemoryInternalNotes.length + 1,
+        ticketId,
+        authorId: req.user.id,
+        author: { id: req.user.id, name: req.user.name, role: req.user.role },
+        content: content.trim(),
+        createdAt: new Date().toISOString(),
+      };
+      inMemoryInternalNotes.push(newNote);
+      res.status(201).json(newNote);
+    }
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to create internal note." } });
+  }
+};
+
+app.post("/api/tickets/:id/notes", handlePostInternalNote);
+app.post("/api/staff/tickets/:id/notes", handlePostInternalNote);
 
 export default app;

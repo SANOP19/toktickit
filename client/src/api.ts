@@ -1,8 +1,8 @@
-import { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment } from "./types";
+import { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment, InternalNote, User } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
-export type { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment };
+export type { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment, InternalNote, User };
 
 export interface SystemStatus {
   online: boolean;
@@ -380,6 +380,123 @@ export async function fetchStaffTicketsApi(
     const err = new Error(errorMsg);
     (err as any).code = code;
     throw err;
+  }
+  return data;
+}
+
+// ---------------------------------------------------------------------------
+// Lab 3 Issue 5 — IT Staff Ticket Detail & Operations API Client
+// ---------------------------------------------------------------------------
+export async function fetchStaffUsersApi(): Promise<User[]> {
+  const headers: Record<string, string> = {};
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/staff/users`, { headers });
+  const data = await res.json().catch(() => []);
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to fetch staff directory.");
+  }
+  return data;
+}
+
+export async function fetchStaffTicketDetailApi(ticketId: number): Promise<Ticket> {
+  const headers: Record<string, string> = {};
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}`, { headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to fetch staff ticket detail.");
+  }
+  return data;
+}
+
+export async function assignStaffTicketApi(ticketId: number, ownerId: number | null): Promise<Ticket> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/assign`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({ ownerId }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to assign ticket.");
+  }
+  return data;
+}
+
+export async function updateStaffTicketPriorityApi(ticketId: number, itPriority: string): Promise<Ticket> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/priority`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({ itPriority }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to update IT Priority.");
+  }
+  return data;
+}
+
+export async function updateStaffTicketStatusApi(ticketId: number, status: string): Promise<Ticket> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/status`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({ status }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to update ticket status.");
+  }
+  return data;
+}
+
+export async function fetchInternalNotesApi(ticketId: number): Promise<InternalNote[]> {
+  const headers: Record<string, string> = {};
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/staff/tickets/${ticketId}/notes`, { headers });
+  const data = await res.json().catch(() => []);
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to fetch internal notes.");
+  }
+  return data;
+}
+
+export async function addInternalNoteApi(ticketId: number, content: string): Promise<InternalNote> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/notes`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ content }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to post internal note.");
   }
   return data;
 }

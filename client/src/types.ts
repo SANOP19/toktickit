@@ -58,6 +58,19 @@ export interface TicketComment {
   createdAt: string;
 }
 
+export interface InternalNote {
+  id: number;
+  ticketId: number;
+  authorId: number;
+  author: {
+    id: number;
+    name: string;
+    role: Role;
+  };
+  content: string;
+  createdAt: string;
+}
+
 export interface Ticket {
   id: number;
   ticketNumber: string;
@@ -79,6 +92,7 @@ export interface Ticket {
   owner?: User | null;
   attachments?: Attachment[];
   comments?: TicketComment[];
+  internalNotes?: InternalNote[];
 }
 
 export interface PaginatedResponse<T> {

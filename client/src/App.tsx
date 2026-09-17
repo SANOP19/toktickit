@@ -10,6 +10,7 @@ import TicketDetail from "./components/TicketDetail.js";
 import { LoginScreen } from "./components/LoginScreen.js";
 import { MandatoryPasswordChangeModal } from "./components/MandatoryPasswordChangeModal.js";
 import { StaffTicketQueue } from "./components/StaffTicketQueue.js";
+import { StaffTicketDetail } from "./components/StaffTicketDetail.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 
@@ -96,17 +97,24 @@ export function AppContent() {
             onCancel={() => setIsChangingRequester(false)}
           />
         ) : selectedTicketId !== null ? (
-          <TicketDetail
-            ticketId={selectedTicketId}
-            currentRequester={
-              selectedRequester || {
-                id: user?.id || 1,
-                name: user?.name || "Staff",
-                email: user?.email || "staff@example.com",
+          user && (user.role === "IT_STAFF" || user.role === "ADMINISTRATOR") ? (
+            <StaffTicketDetail
+              ticketId={selectedTicketId}
+              onBack={() => setSelectedTicketId(null)}
+            />
+          ) : (
+            <TicketDetail
+              ticketId={selectedTicketId}
+              currentRequester={
+                selectedRequester || {
+                  id: user?.id || 1,
+                  name: user?.name || "Staff",
+                  email: user?.email || "staff@example.com",
+                }
               }
-            }
-            onBack={() => setSelectedTicketId(null)}
-          />
+              onBack={() => setSelectedTicketId(null)}
+            />
+          )
         ) : (
           <>
             {/* System Status section from Lab 1 */}
