@@ -1,8 +1,8 @@
-import { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority } from "./types";
+import { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
-export type { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority };
+export type { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment };
 
 export interface SystemStatus {
   online: boolean;
@@ -94,7 +94,13 @@ export async function fetchTickets(params: {
   if (params.page) query.set("page", String(params.page));
   if (params.limit) query.set("limit", String(params.limit));
 
-  const res = await fetch(`${API_URL}/api/tickets?${query.toString()}`);
+  const headers: Record<string, string> = {};
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_URL}/api/tickets?${query.toString()}`, { headers });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || "Failed to load tickets");
@@ -102,11 +108,71 @@ export async function fetchTickets(params: {
   return res.json();
 }
 
-export async function getTicketDetail(ticketId: number, requesterId: number): Promise<Ticket> {
-  const res = await fetch(`${API_URL}/api/tickets/${ticketId}?requesterId=${requesterId}`);
+export async function getTicketDetail(ticketId: number, requesterId?: number): Promise<Ticket> {
+  const headers: Record<string, string> = {};
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const query = requesterId ? `?requesterId=${requesterId}` : "";
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}${query}`, { headers });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || "Failed to load ticket details");
+  }
+  return res.json();
+}
+
+export async function getCommentsApi(ticketId: number): Promise<TicketComment[]> {
+  const headers: Record<string, string> = {};
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/comments`, { headers });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.error?.message || data?.error || "Failed to load comments");
+  }
+  return res.json();
+}
+
+export async function addCommentApi(ticketId: number, content: string): Promise<TicketComment> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/comments`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.error?.message || data?.error || "Failed to post comment");
+  }
+  return res.json();
+}
+
+export async function toggleProblemResolvedApi(ticketId: number, isResolved: boolean): Promise<Ticket> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/resolve-indication`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ isResolved }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.error?.message || data?.error || "Failed to update resolution status");
   }
   return res.json();
 }
