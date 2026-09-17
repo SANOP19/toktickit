@@ -1,3 +1,19 @@
+export type Role = "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: Role;
+  isActive: boolean;
+  mustChangePassword: boolean;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: User;
+}
+
 export interface RequesterUser {
   id: number;
   name: string;
