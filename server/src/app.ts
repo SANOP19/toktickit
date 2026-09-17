@@ -93,6 +93,7 @@ const sampleTickets = [
     description: "Battery discharges completely within 30 minutes of unplugging from charger.",
     requestedPriority: "MEDIUM",
     currentStatus: "New",
+    isRequesterResolved: false,
     requesterId: 1,
     categoryId: 2,
     relatedSystemId: 7,
@@ -109,6 +110,7 @@ const sampleTickets = [
     description: "Getting connection timeout error 691 when attempting to establish a VPN session.",
     requestedPriority: "HIGH",
     currentStatus: "Open",
+    isRequesterResolved: false,
     requesterId: 1,
     categoryId: 4,
     relatedSystemId: 3,
@@ -125,6 +127,7 @@ const sampleTickets = [
     description: "New emails do not appear on iOS Outlook app even after pulling to refresh.",
     requestedPriority: "MEDIUM",
     currentStatus: "In Progress",
+    isRequesterResolved: false,
     requesterId: 1,
     categoryId: 3,
     relatedSystemId: 1,
@@ -141,6 +144,7 @@ const sampleTickets = [
     description: "Office printer displays continuous paper jam message even after tray clearing.",
     requestedPriority: "LOW",
     currentStatus: "New",
+    isRequesterResolved: false,
     requesterId: 2,
     categoryId: 2,
     relatedSystemId: 6,
@@ -154,6 +158,7 @@ const sampleTickets = [
 
 export const inMemoryTickets: any[] = [...sampleTickets];
 export const inMemoryAttachments: any[] = [];
+export const inMemoryComments: any[] = [];
 
 // ---------------------------------------------------------------------------
 // In-Memory Storage for Users (Offline Auth Fallback)
@@ -646,6 +651,7 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
       description: description.trim(),
       requestedPriority,
       currentStatus: "New",
+      isRequesterResolved: false,
       requesterId,
       categoryId,
       relatedSystemId,
@@ -666,6 +672,7 @@ app.post("/api/tickets", async (req: Request, res: Response) => {
           description: description.trim(),
           requestedPriority,
           currentStatus: "New",
+          isRequesterResolved: false,
           requesterId,
           categoryId,
           relatedSystemId,
@@ -694,8 +701,10 @@ app.get("/api/tickets", async (req: Request, res: Response) => {
     // Authenticated identity determines requesterId (BR-03, AC-03)
     if (req.user && req.user.role === "REQUESTER") {
       requesterId = req.user.id;
-    } else if (!requesterId || isNaN(requesterId)) {
-      res.status(400).json({ error: "requesterId query parameter is required and must be a number." });
+    }
+
+    if (!requesterId || isNaN(requesterId)) {
+      res.status(400).json({ error: "requesterId query parameter is required." });
       return;
     }
 
@@ -784,19 +793,21 @@ app.get("/api/tickets", async (req: Request, res: Response) => {
 });
 
 // ---------------------------------------------------------------------------
-// [Route: Ticket Detail] Lab 2 Issue 5 — Requester Ticket Detail (GET /api/tickets/:id)
+// [Route: Ticket Detail] Lab 2 Issue 5 & Lab 3 Issue 3 — Requester Ticket Detail (GET /api/tickets/:id)
 // ---------------------------------------------------------------------------
 app.get("/api/tickets/:id", async (req: Request, res: Response) => {
   try {
     const ticketId = Number(req.params.id);
-    const requesterId = Number(req.query.requesterId);
+    let requesterId = Number(req.query.requesterId);
 
     if (isNaN(ticketId)) {
       res.status(400).json({ error: "Invalid ticket ID." });
       return;
     }
 
-    if (!requesterId || isNaN(requesterId)) {
+    if (req.user) {
+      requesterId = req.user.id;
+    } else if (!requesterId || isNaN(requesterId)) {
       res.status(400).json({ error: "requesterId query parameter is required for ownership verification." });
       return;
     }
@@ -812,6 +823,12 @@ app.get("/api/tickets/:id", async (req: Request, res: Response) => {
           attachments: {
             orderBy: { createdAt: "asc" },
           },
+          comments: {
+            orderBy: { createdAt: "asc" },
+            include: {
+              author: { select: { id: true, name: true, role: true } },
+            },
+          },
         },
       });
     } catch (_dbErr) {
@@ -820,6 +837,7 @@ app.get("/api/tickets/:id", async (req: Request, res: Response) => {
         ticket = {
           ...found,
           attachments: inMemoryAttachments.filter((a) => a.ticketId === ticketId),
+          comments: inMemoryComments.filter((c) => c.ticketId === ticketId),
         };
       }
     }
@@ -829,8 +847,13 @@ app.get("/api/tickets/:id", async (req: Request, res: Response) => {
       return;
     }
 
-    // Ownership protection (BR-05 / AC-03)
-    if (ticket.requesterId !== requesterId) {
+    // Ownership protection (BR-05 / BR-06 / AC-03 / AC-04)
+    if (req.user) {
+      if (req.user.role === "REQUESTER" && ticket.requesterId !== req.user.id) {
+        res.status(403).json({ error: "Forbidden: You do not have permission to view this ticket." });
+        return;
+      }
+    } else if (ticket.requesterId !== requesterId) {
       res.status(403).json({ error: "Forbidden: You do not have permission to view this ticket." });
       return;
     }
@@ -1143,5 +1166,255 @@ app.delete("/api/tickets/:id/attachments/:attachmentId", async (req: Request, re
     res.status(500).json({ error: "Failed to soft-remove attachment." });
   }
 });
+
+// ---------------------------------------------------------------------------
+// [Route: Public Comments - GET] Lab 3 Issue 3 — GET /api/tickets/:id/comments
+// ---------------------------------------------------------------------------
+app.get("/api/tickets/:id/comments", async (req: Request, res: Response) => {
+  try {
+    const ticketId = Number(req.params.id);
+    if (isNaN(ticketId)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid ticket ID." } });
+      return;
+    }
+
+    let ticket: any = null;
+    try {
+      ticket = await getPrisma().ticket.findUnique({
+        where: { id: ticketId },
+        select: { id: true, requesterId: true },
+      });
+    } catch (_dbErr) {
+      ticket = inMemoryTickets.find((t) => t.id === ticketId);
+    }
+
+    if (!ticket) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
+      return;
+    }
+
+    // Authorization verification (BR-06, BR-14, AC-04, AC-05)
+    if (req.user) {
+      if (req.user.role === "REQUESTER" && ticket.requesterId !== req.user.id) {
+        res.status(403).json({
+          error: {
+            code: "FORBIDDEN",
+            message: "Forbidden: You do not have permission to view comments on this ticket.",
+          },
+        });
+        return;
+      }
+    } else {
+      const requesterId = Number(req.query.requesterId);
+      if (!requesterId || requesterId !== ticket.requesterId) {
+        res.status(403).json({
+          error: {
+            code: "FORBIDDEN",
+            message: "Forbidden: Authentication required or invalid requester credentials.",
+          },
+        });
+        return;
+      }
+    }
+
+    try {
+      const comments = await getPrisma().comment.findMany({
+        where: { ticketId },
+        orderBy: { createdAt: "asc" },
+        include: {
+          author: {
+            select: { id: true, name: true, role: true },
+          },
+        },
+      });
+      res.status(200).json(comments);
+    } catch (_dbErr) {
+      const comments = inMemoryComments.filter((c) => c.ticketId === ticketId);
+      res.status(200).json(comments);
+    }
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to retrieve comments." } });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// [Route: Public Comments - POST] Lab 3 Issue 3 — POST /api/tickets/:id/comments
+// ---------------------------------------------------------------------------
+app.post("/api/tickets/:id/comments", async (req: Request, res: Response) => {
+  try {
+    const ticketId = Number(req.params.id);
+    if (isNaN(ticketId)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid ticket ID." } });
+      return;
+    }
+
+    const { content } = req.body;
+    if (!content || typeof content !== "string" || content.trim().length === 0 || content.trim().length > 2000) {
+      res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Comment content must be between 1 and 2,000 characters.",
+        },
+      });
+      return;
+    }
+
+    let ticket: any = null;
+    try {
+      ticket = await getPrisma().ticket.findUnique({
+        where: { id: ticketId },
+        select: { id: true, requesterId: true },
+      });
+    } catch (_dbErr) {
+      ticket = inMemoryTickets.find((t) => t.id === ticketId);
+    }
+
+    if (!ticket) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
+      return;
+    }
+
+    let authorId: number;
+    let authorRole: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR" = "REQUESTER";
+    let authorName = "Jennifer Anderson";
+
+    if (req.user) {
+      authorId = req.user.id;
+      authorRole = req.user.role;
+      authorName = req.user.name;
+
+      if (req.user.role === "REQUESTER" && ticket.requesterId !== req.user.id) {
+        res.status(403).json({
+          error: {
+            code: "FORBIDDEN",
+            message: "Forbidden: You cannot comment on tickets you do not own.",
+          },
+        });
+        return;
+      }
+    } else {
+      const reqId = Number(req.body.authorId || req.body.requesterId || req.query.requesterId);
+      if (!reqId || reqId !== ticket.requesterId) {
+        res.status(403).json({
+          error: {
+            code: "FORBIDDEN",
+            message: "Forbidden: Authentication required to post comments.",
+          },
+        });
+        return;
+      }
+      authorId = reqId;
+      const foundUser = inMemoryUsers.find((u) => u.id === reqId);
+      if (foundUser) {
+        authorRole = foundUser.role;
+        authorName = foundUser.name;
+      }
+    }
+
+    try {
+      const comment = await getPrisma().comment.create({
+        data: {
+          ticketId,
+          authorId,
+          content: content.trim(),
+        },
+        include: {
+          author: {
+            select: { id: true, name: true, role: true },
+          },
+        },
+      });
+      res.status(201).json(comment);
+    } catch (_dbErr) {
+      const newComment = {
+        id: inMemoryComments.length + 1,
+        ticketId,
+        authorId,
+        author: { id: authorId, name: authorName, role: authorRole },
+        content: content.trim(),
+        createdAt: new Date().toISOString(),
+      };
+      inMemoryComments.push(newComment);
+      res.status(201).json(newComment);
+    }
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to post comment." } });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// [Route: Resolve Indication] Lab 3 Issue 3 — POST / PATCH /api/tickets/:id/resolve-indication
+// ---------------------------------------------------------------------------
+const handleResolveIndication = async (req: Request, res: Response) => {
+  try {
+    const ticketId = Number(req.params.id);
+    if (isNaN(ticketId)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid ticket ID." } });
+      return;
+    }
+
+    let ticket: any = null;
+    try {
+      ticket = await getPrisma().ticket.findUnique({
+        where: { id: ticketId },
+      });
+    } catch (_dbErr) {
+      ticket = inMemoryTickets.find((t) => t.id === ticketId);
+    }
+
+    if (!ticket) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
+      return;
+    }
+
+    // Ownership check (BR-06, BR-10, AC-14)
+    if (req.user) {
+      if (req.user.role === "REQUESTER" && ticket.requesterId !== req.user.id) {
+        res.status(403).json({
+          error: {
+            code: "FORBIDDEN",
+            message: "Forbidden: You may only signal resolution on your own tickets.",
+          },
+        });
+        return;
+      }
+    } else {
+      const requesterId = Number(req.body.requesterId || req.query.requesterId);
+      if (!requesterId || requesterId !== ticket.requesterId) {
+        res.status(403).json({
+          error: {
+            code: "FORBIDDEN",
+            message: "Forbidden: You may only signal resolution on your own tickets.",
+          },
+        });
+        return;
+      }
+    }
+
+    const isResolved = req.body.isResolved !== undefined ? Boolean(req.body.isResolved) : true;
+
+    try {
+      const updated = await getPrisma().ticket.update({
+        where: { id: ticketId },
+        data: { isRequesterResolved: isResolved },
+        include: {
+          category: { select: { id: true, name: true } },
+          relatedSystem: { select: { id: true, name: true } },
+          requester: { select: { id: true, name: true, email: true } },
+          attachments: { orderBy: { createdAt: "asc" } },
+        },
+      });
+      res.status(200).json(updated);
+    } catch (_dbErr) {
+      ticket.isRequesterResolved = isResolved;
+      res.status(200).json({ ...ticket, isRequesterResolved: isResolved });
+    }
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to update resolution indication." } });
+  }
+};
+
+app.post("/api/tickets/:id/resolve-indication", handleResolveIndication);
+app.patch("/api/tickets/:id/resolve-indication", handleResolveIndication);
 
 export default app;

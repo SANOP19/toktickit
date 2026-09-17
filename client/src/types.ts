@@ -45,14 +45,30 @@ export interface Attachment {
 
 export type TicketPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 
+export interface TicketComment {
+  id: number;
+  ticketId: number;
+  authorId: number;
+  author: {
+    id: number;
+    name: string;
+    role: Role;
+  };
+  content: string;
+  createdAt: string;
+}
+
 export interface Ticket {
   id: number;
   ticketNumber: string;
   summary: string;
   description: string;
   requestedPriority: TicketPriority;
+  itPriority?: TicketPriority | null;
   currentStatus: string;
+  isRequesterResolved?: boolean;
   requesterId: number;
+  ownerId?: number | null;
   categoryId: number;
   relatedSystemId: number;
   createdAt: string;
@@ -60,7 +76,9 @@ export interface Ticket {
   category?: Category;
   relatedSystem?: RelatedSystem;
   requester?: RequesterUser;
+  owner?: User | null;
   attachments?: Attachment[];
+  comments?: TicketComment[];
 }
 
 export interface PaginatedResponse<T> {

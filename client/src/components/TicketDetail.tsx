@@ -3,10 +3,14 @@ import {
   Ticket,
   Attachment,
   RequesterUser,
+  TicketComment,
   getTicketDetail,
   uploadAttachment,
   getAttachmentDownloadUrl,
   softRemoveAttachment,
+  getCommentsApi,
+  addCommentApi,
+  toggleProblemResolvedApi,
 } from "../api";
 
 interface Props {
@@ -30,16 +34,77 @@ export default function TicketDetail({ ticketId, currentRequester, onBack }: Pro
   const [removalError, setRemovalError] = useState<string>("");
   const [isRemoving, setIsRemoving] = useState<boolean>(false);
 
+  // Problem resolved toggle state (Lab 3 Issue 3: BR-10, AC-14)
+  const [isTogglingResolved, setIsTogglingResolved] = useState<boolean>(false);
+  const [resolveError, setResolveError] = useState<string>("");
+
+  // Public comments state (Lab 3 Issue 3: BR-13, BR-14, AC-05)
+  const [comments, setComments] = useState<TicketComment[]>([]);
+  const [newCommentText, setNewCommentText] = useState<string>("");
+  const [isPostingComment, setIsPostingComment] = useState<boolean>(false);
+  const [commentError, setCommentError] = useState<string>("");
+
   async function loadTicket() {
     setLoading(true);
     setError("");
     try {
       const data = await getTicketDetail(ticketId, currentRequester.id);
       setTicket(data);
+      if (data.comments && data.comments.length > 0) {
+        setComments(data.comments);
+      } else {
+        try {
+          const loadedComments = await getCommentsApi(ticketId);
+          setComments(loadedComments);
+        } catch {
+          // comments fallback
+        }
+      }
     } catch (err: unknown) {
       setError((err as Error).message || "Failed to load ticket details");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleToggleResolved() {
+    if (!ticket) return;
+    setIsTogglingResolved(true);
+    setResolveError("");
+    try {
+      const nextResolved = !ticket.isRequesterResolved;
+      const updated = await toggleProblemResolvedApi(ticket.id, nextResolved);
+      setTicket((prev) => (prev ? { ...prev, isRequesterResolved: updated.isRequesterResolved ?? nextResolved } : null));
+    } catch (err: unknown) {
+      setResolveError((err as Error).message || "Failed to update resolution status.");
+    } finally {
+      setIsTogglingResolved(false);
+    }
+  }
+
+  async function handlePostComment(e: React.FormEvent) {
+    e.preventDefault();
+    if (!ticket) return;
+    const trimmed = newCommentText.trim();
+    if (!trimmed) {
+      setCommentError("Comment content cannot be empty.");
+      return;
+    }
+    if (trimmed.length > 2000) {
+      setCommentError("Comment cannot exceed 2,000 characters.");
+      return;
+    }
+
+    setIsPostingComment(true);
+    setCommentError("");
+    try {
+      const created = await addCommentApi(ticket.id, trimmed);
+      setComments((prev) => [...prev, created]);
+      setNewCommentText("");
+    } catch (err: unknown) {
+      setCommentError((err as Error).message || "Failed to post comment.");
+    } finally {
+      setIsPostingComment(false);
     }
   }
 
@@ -255,6 +320,59 @@ export default function TicketDetail({ ticketId, currentRequester, onBack }: Pro
             </div>
           </div>
 
+          {/* Problem Appears Resolved Banner / Action (Lab 3 Issue 3: BR-10, AC-14) */}
+          <div
+            className="p-3 mb-4 rounded-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3"
+            style={{
+              backgroundColor: ticket.isRequesterResolved ? "#EAF6EF" : "#F5F7F6",
+              border: `1px solid ${ticket.isRequesterResolved ? "#006B3C" : "#E5E7EB"}`,
+            }}
+            data-testid="resolve-indication-section"
+          >
+            <div>
+              <div className="d-flex align-items-center gap-2">
+                <span className="fw-bold" style={{ color: ticket.isRequesterResolved ? "#006B3C" : "#1F2937" }}>
+                  {ticket.isRequesterResolved ? "✓ Problem Marked as Resolved by Requester" : "Is your problem resolved?"}
+                </span>
+                {ticket.isRequesterResolved && (
+                  <span className="badge" style={{ backgroundColor: "#006B3C", color: "#FFFFFF" }}>
+                    Requester Confirmed
+                  </span>
+                )}
+              </div>
+              <small className="text-muted d-block mt-1">
+                {ticket.isRequesterResolved
+                  ? "You marked this problem as resolved. IT Staff have been alerted and will complete formal verification."
+                  : "If your issue has been addressed, let IT Staff know. The ticket remains active until officially closed by staff."}
+              </small>
+              {resolveError && <div className="text-danger small mt-1">⚠️ {resolveError}</div>}
+            </div>
+
+            <button
+              type="button"
+              className={`btn btn-sm ${ticket.isRequesterResolved ? "btn-outline-secondary" : "text-white"}`}
+              style={
+                !ticket.isRequesterResolved
+                  ? { backgroundColor: "#006B3C", borderColor: "#006B3C" }
+                  : undefined
+              }
+              onClick={handleToggleResolved}
+              disabled={isTogglingResolved}
+              data-testid="resolve-indication-btn"
+            >
+              {isTogglingResolved ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" />
+                  Updating...
+                </>
+              ) : ticket.isRequesterResolved ? (
+                "Undo / Problem Persists"
+              ) : (
+                "✓ Problem Appears Resolved"
+              )}
+            </button>
+          </div>
+
           {/* Summary & Description */}
           <div className="mb-4">
             <label className="text-muted small fw-semibold d-block mb-1">Ticket Summary</label>
@@ -389,6 +507,114 @@ export default function TicketDetail({ ticketId, currentRequester, onBack }: Pro
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Public Comments Section (Lab 3 Issue 3: BR-13, BR-14, AC-05) */}
+      <div className="card shadow-sm border-0 mb-4" style={{ borderRadius: 8 }}>
+        <div className="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+          <h2 className="h6 fw-bold mb-0 text-dark">
+            💬 Public Comments ({comments.length})
+          </h2>
+        </div>
+
+        <div className="card-body p-4">
+          {/* Comments List */}
+          {comments.length === 0 ? (
+            <p className="text-muted small mb-4" data-testid="no-comments-msg">
+              No comments yet on this ticket. Use the form below to communicate with the IT support team.
+            </p>
+          ) : (
+            <div className="d-flex flex-column gap-3 mb-4" data-testid="comments-list">
+              {comments.map((comment) => {
+                const isStaff = comment.author?.role === "IT_STAFF";
+                const isAdmin = comment.author?.role === "ADMINISTRATOR";
+                const roleBadgeStyle = isStaff
+                  ? { backgroundColor: "#0D6EFD", color: "#FFFFFF" }
+                  : isAdmin
+                  ? { backgroundColor: "#212529", color: "#FFFFFF" }
+                  : { backgroundColor: "#EAF6EF", color: "#006B3C", border: "1px solid #006B3C" };
+
+                const roleLabel = isStaff ? "IT Staff" : isAdmin ? "Administrator" : "Requester";
+
+                return (
+                  <div
+                    key={comment.id}
+                    className="p-3 rounded-3"
+                    style={{
+                      backgroundColor: isStaff ? "#F0F7FF" : "#FAFBFB",
+                      border: `1px solid ${isStaff ? "#B6D4FE" : "#E5E7EB"}`,
+                    }}
+                    data-testid={`comment-item-${comment.id}`}
+                  >
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="fw-semibold text-dark">
+                          {comment.author?.name || "User"}
+                        </span>
+                        <span className="badge" style={roleBadgeStyle}>
+                          {roleLabel}
+                        </span>
+                      </div>
+                      <span className="text-muted small">
+                        {formatDate(comment.createdAt)}
+                      </span>
+                    </div>
+                    <div
+                      className="text-dark small"
+                      style={{ whiteSpace: "pre-wrap" }}
+                    >
+                      {comment.content}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* New Comment Input Form */}
+          <form onSubmit={handlePostComment} className="p-3 bg-light rounded-3" data-testid="comment-form">
+            <label htmlFor="new-comment-input" className="form-label fw-semibold small text-dark mb-1">
+              Add Public Comment
+            </label>
+            <textarea
+              id="new-comment-input"
+              className={`form-control ${commentError ? "is-invalid" : ""}`}
+              rows={3}
+              maxLength={2000}
+              placeholder="Type your message or update for the IT support team here..."
+              value={newCommentText}
+              onChange={(e) => {
+                setNewCommentText(e.target.value);
+                if (commentError) setCommentError("");
+              }}
+              disabled={isPostingComment}
+              data-testid="new-comment-textarea"
+            />
+            {commentError && <div className="invalid-feedback d-block">{commentError}</div>}
+
+            <div className="d-flex justify-content-between align-items-center mt-2">
+              <span className="text-muted small">
+                {newCommentText.length} / 2,000 characters
+              </span>
+              <button
+                type="submit"
+                className="btn btn-sm text-white px-3"
+                style={{ backgroundColor: "#006B3C", borderColor: "#006B3C" }}
+                disabled={isPostingComment || !newCommentText.trim()}
+                data-testid="submit-comment-btn"
+              >
+                {isPostingComment ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" />
+                    Posting...
+                  </>
+                ) : (
+                  "Post Comment"
+                )}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 
