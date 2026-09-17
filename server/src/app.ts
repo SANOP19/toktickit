@@ -92,9 +92,12 @@ const sampleTickets = [
     summary: "Laptop battery drains quickly",
     description: "Battery discharges completely within 30 minutes of unplugging from charger.",
     requestedPriority: "MEDIUM",
+    itPriority: "HIGH",
     currentStatus: "New",
     isRequesterResolved: false,
     requesterId: 1,
+    ownerId: null,
+    owner: null,
     categoryId: 2,
     relatedSystemId: 7,
     createdAt: "2026-09-03T09:14:00.000Z",
@@ -109,9 +112,12 @@ const sampleTickets = [
     summary: "Cannot connect to VPN from home",
     description: "Getting connection timeout error 691 when attempting to establish a VPN session.",
     requestedPriority: "HIGH",
+    itPriority: "HIGH",
     currentStatus: "Open",
     isRequesterResolved: false,
     requesterId: 1,
+    ownerId: 5,
+    owner: { id: 5, name: "Alex Rivera", email: "alex.r@example.com", role: "IT_STAFF" },
     categoryId: 4,
     relatedSystemId: 3,
     createdAt: "2026-09-02T08:02:00.000Z",
@@ -126,9 +132,12 @@ const sampleTickets = [
     summary: "Email not syncing on mobile Outlook app",
     description: "New emails do not appear on iOS Outlook app even after pulling to refresh.",
     requestedPriority: "MEDIUM",
+    itPriority: "MEDIUM",
     currentStatus: "In Progress",
     isRequesterResolved: false,
     requesterId: 1,
+    ownerId: 5,
+    owner: { id: 5, name: "Alex Rivera", email: "alex.r@example.com", role: "IT_STAFF" },
     categoryId: 3,
     relatedSystemId: 1,
     createdAt: "2026-09-01T16:45:00.000Z",
@@ -143,9 +152,12 @@ const sampleTickets = [
     summary: "Printer on 3rd floor paper jam error",
     description: "Office printer displays continuous paper jam message even after tray clearing.",
     requestedPriority: "LOW",
+    itPriority: "LOW",
     currentStatus: "New",
     isRequesterResolved: false,
     requesterId: 2,
+    ownerId: null,
+    owner: null,
     categoryId: 2,
     relatedSystemId: 6,
     createdAt: "2026-09-03T11:20:00.000Z",
@@ -1416,5 +1428,197 @@ const handleResolveIndication = async (req: Request, res: Response) => {
 
 app.post("/api/tickets/:id/resolve-indication", handleResolveIndication);
 app.patch("/api/tickets/:id/resolve-indication", handleResolveIndication);
+
+// ---------------------------------------------------------------------------
+// [Route: IT Staff Ticket Queue] Lab 3 Issue 4 — GET /api/staff/tickets
+// ---------------------------------------------------------------------------
+app.get("/api/staff/tickets", async (req: Request, res: Response) => {
+  try {
+    // 1. Authorization: Only IT_STAFF and ADMINISTRATOR allowed (BR-06, BR-07, AC-07)
+    if (!req.user) {
+      res.status(401).json({
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required to access IT Staff Ticket Queue.",
+        },
+      });
+      return;
+    }
+
+    if (req.user.role === "REQUESTER") {
+      res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Forbidden: Requester accounts cannot access the IT Staff Ticket Queue.",
+        },
+      });
+      return;
+    }
+
+    // 2. Extract query parameters
+    const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+    const categoryId = req.query.categoryId ? Number(req.query.categoryId) : undefined;
+    const currentStatus = typeof req.query.currentStatus === "string" && req.query.currentStatus.trim() ? req.query.currentStatus.trim() : undefined;
+    const priority = typeof req.query.priority === "string" && req.query.priority.trim() ? req.query.priority.trim().toUpperCase() : undefined;
+    const ownerFilter = typeof req.query.ownerFilter === "string" ? req.query.ownerFilter.trim() : "all";
+    const sortBy = typeof req.query.sortBy === "string" && ["createdAt", "updatedAt", "ticketNumber", "itPriority", "currentStatus"].includes(req.query.sortBy)
+      ? req.query.sortBy
+      : "createdAt";
+    const sortOrder = req.query.sortOrder === "asc" ? "asc" : "desc";
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.max(1, Math.min(50, Number(req.query.limit) || 10));
+
+    // 3. Build Prisma where clause
+    const where: any = {};
+
+    if (categoryId && !isNaN(categoryId)) {
+      where.categoryId = categoryId;
+    }
+
+    if (currentStatus) {
+      where.currentStatus = currentStatus;
+    }
+
+    if (priority) {
+      where.OR = [
+        { itPriority: priority },
+        { requestedPriority: priority },
+      ];
+    }
+
+    if (search) {
+      const searchConditions = [
+        { ticketNumber: { contains: search, mode: "insensitive" } },
+        { summary: { contains: search, mode: "insensitive" } },
+      ];
+      if (where.OR) {
+        where.AND = [{ OR: where.OR }, { OR: searchConditions }];
+        delete where.OR;
+      } else {
+        where.OR = searchConditions;
+      }
+    }
+
+    if (ownerFilter === "unassigned") {
+      where.ownerId = null;
+    } else if (ownerFilter === "assigned_to_me") {
+      where.ownerId = req.user.id;
+    }
+
+    try {
+      const total = await getPrisma().ticket.count({ where });
+      const totalPages = Math.ceil(total / limit) || 1;
+      const skip = (page - 1) * limit;
+
+      const tickets = await getPrisma().ticket.findMany({
+        where,
+        orderBy: { [sortBy]: sortOrder },
+        skip,
+        take: limit,
+        include: {
+          category: { select: { id: true, name: true } },
+          relatedSystem: { select: { id: true, name: true } },
+          requester: { select: { id: true, name: true, email: true } },
+          owner: { select: { id: true, name: true, email: true, role: true } },
+        },
+      });
+
+      // Quick summary counts for Metrics Bar
+      const totalOpen = await getPrisma().ticket.count({
+        where: { currentStatus: { notIn: ["Resolved", "Closed", "Cancelled"] } },
+      });
+      const assignedToMe = await getPrisma().ticket.count({
+        where: { ownerId: req.user.id, currentStatus: { notIn: ["Closed", "Cancelled"] } },
+      });
+      const unassigned = await getPrisma().ticket.count({
+        where: { ownerId: null, currentStatus: { notIn: ["Closed", "Cancelled"] } },
+      });
+
+      res.status(200).json({
+        tickets,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+        },
+        summary: {
+          totalOpen,
+          assignedToMe,
+          unassigned,
+        },
+      });
+    } catch (_dbErr) {
+      // In-Memory Fallback for offline/test environments
+      let filtered = [...inMemoryTickets];
+
+      if (categoryId && !isNaN(categoryId)) {
+        filtered = filtered.filter((t) => t.categoryId === categoryId);
+      }
+
+      if (currentStatus) {
+        filtered = filtered.filter((t) => t.currentStatus.toLowerCase() === currentStatus.toLowerCase());
+      }
+
+      if (priority) {
+        filtered = filtered.filter(
+          (t) =>
+            (t.itPriority && t.itPriority.toUpperCase() === priority) ||
+            (t.requestedPriority && t.requestedPriority.toUpperCase() === priority)
+        );
+      }
+
+      if (search) {
+        const s = search.toLowerCase();
+        filtered = filtered.filter(
+          (t) =>
+            (t.ticketNumber && t.ticketNumber.toLowerCase().includes(s)) ||
+            (t.summary && t.summary.toLowerCase().includes(s))
+        );
+      }
+
+      if (ownerFilter === "unassigned") {
+        filtered = filtered.filter((t) => !t.ownerId);
+      } else if (ownerFilter === "assigned_to_me") {
+        filtered = filtered.filter((t) => t.ownerId === req.user!.id);
+      }
+
+      // Sort
+      filtered.sort((a, b) => {
+        const valA = a[sortBy] ?? "";
+        const valB = b[sortBy] ?? "";
+        if (valA < valB) return sortOrder === "asc" ? -1 : 1;
+        if (valA > valB) return sortOrder === "asc" ? 1 : -1;
+        return 0;
+      });
+
+      const total = filtered.length;
+      const totalPages = Math.ceil(total / limit) || 1;
+      const skip = (page - 1) * limit;
+      const paginated = filtered.slice(skip, skip + limit);
+
+      const totalOpen = inMemoryTickets.filter((t) => !["Resolved", "Closed", "Cancelled"].includes(t.currentStatus)).length;
+      const assignedToMe = inMemoryTickets.filter((t) => t.ownerId === req.user!.id && !["Closed", "Cancelled"].includes(t.currentStatus)).length;
+      const unassigned = inMemoryTickets.filter((t) => !t.ownerId && !["Closed", "Cancelled"].includes(t.currentStatus)).length;
+
+      res.status(200).json({
+        tickets: paginated,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+        },
+        summary: {
+          totalOpen,
+          assignedToMe,
+          unassigned,
+        },
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to retrieve staff ticket queue." } });
+  }
+});
 
 export default app;

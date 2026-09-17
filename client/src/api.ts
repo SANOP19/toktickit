@@ -321,3 +321,66 @@ export async function changePasswordApi(
   setAuthToken(data.token);
   return data;
 }
+
+// ---------------------------------------------------------------------------
+// Lab 3 Issue 4 — IT Staff Ticket Queue API Client
+// ---------------------------------------------------------------------------
+export interface StaffTicketQueryParams {
+  search?: string;
+  categoryId?: number;
+  currentStatus?: string;
+  priority?: string;
+  ownerFilter?: "all" | "unassigned" | "assigned_to_me";
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+export interface StaffTicketQueueResponse {
+  tickets: Ticket[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  summary?: {
+    totalOpen: number;
+    assignedToMe: number;
+    unassigned: number;
+  };
+}
+
+export async function fetchStaffTicketsApi(
+  params: StaffTicketQueryParams = {}
+): Promise<StaffTicketQueueResponse> {
+  const query = new URLSearchParams();
+  if (params.search) query.set("search", params.search);
+  if (params.categoryId) query.set("categoryId", String(params.categoryId));
+  if (params.currentStatus) query.set("currentStatus", params.currentStatus);
+  if (params.priority) query.set("priority", params.priority);
+  if (params.ownerFilter) query.set("ownerFilter", params.ownerFilter);
+  if (params.page) query.set("page", String(params.page));
+  if (params.limit) query.set("limit", String(params.limit));
+  if (params.sortBy) query.set("sortBy", params.sortBy);
+  if (params.sortOrder) query.set("sortOrder", params.sortOrder);
+
+  const headers: Record<string, string> = {};
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_URL}/api/staff/tickets?${query.toString()}`, { headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const errorMsg = data?.error?.message || data?.error || "Failed to load staff ticket queue.";
+    const code = data?.error?.code || "QUEUE_FETCH_ERROR";
+    const err = new Error(errorMsg);
+    (err as any).code = code;
+    throw err;
+  }
+  return data;
+}
+
