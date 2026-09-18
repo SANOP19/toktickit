@@ -32,8 +32,9 @@ Throughout Sprint 3, our engineering team strictly enforces the core course coll
 | **Issue 3** | `feature/3-requester-continuation` | #27 | [PR #27](https://github.com/SANOP19/toktickit/pull/27) | `lab3-staging` | @Beethoven190 | Approved | @Beethoven190 |
 | **Issue 4** | `feature/4-staff-queue` | #29 | [PR #29](https://github.com/SANOP19/toktickit/pull/29) | `lab3-staging` | @Beethoven190 | Approved | @Beethoven190 |
 | **Issue 5** | `feature/5-staff-ticket-detail` | #31 | [PR #31](https://github.com/SANOP19/toktickit/pull/31) | `lab3-staging` | @Beethoven190 | Approved | @Beethoven190 |
-| **Issue 6** | `feature/6-admin-user-management` | #33 | [PR #33](https://github.com/SANOP19/toktickit/pull/33) | `lab3-staging` | Assigned Collaborator | Pending | Pending |
-| **Release** | `feature/7-docs-e2e-release` | TBD | [PR Link](https://github.com/SANOP19/toktickit/pulls) | `main` | Assigned Collaborator | Pending | Pending |
+| **Issue 6** | `feature/6-admin-user-management` | #33 | [PR #33](https://github.com/SANOP19/toktickit/pull/33) | `lab3-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
+| **Issue 7** | `feature/7-docs-e2e` | TBD | [PR Link](https://github.com/SANOP19/toktickit/pulls) | `lab3-staging` | Assigned Collaborator | Pending | Pending |
+| **Release** | `lab3-staging` | TBD | [PR Link](https://github.com/SANOP19/toktickit/pulls) | `main` | Assigned Collaborator | Pending | Pending |
 
 ---
 
@@ -48,4 +49,4 @@ Throughout Sprint 3, our engineering team strictly enforces the core course coll
 | @Beethoven190 | `Beethoven190/toktickit` | #27 | Issue 3: IT Staff Ticket Queue | **Approved** | @SANOP19 |
 | @Beethoven190 | `Beethoven190/toktickit` | #29 | Issue 4: IT Staff Ticket Operations | **Approved** | @SANOP19 |
 | @Beethoven190 | `Beethoven190/toktickit` | #31 | Issue 5: Public Comments, Internal Notes & Problem Resolution | **Approved** | @SANOP19 |
-| @Beethoven190 | `Beethoven190/toktickit` | TBD | Issue 6: Admin User Management | Pending | @SANOP19 |
+| @Beethoven190 | `Beethoven190/toktickit` | #33 | Issue 6: Admin User Management | **Approved** | @SANOP19 |
