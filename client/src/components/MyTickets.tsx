@@ -148,6 +148,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
           <div className="input-group input-group-sm">
             <span className="input-group-text bg-white border-end-0 text-muted" id="search-addon">🔍</span>
             <input
+              id="ticketSearchInput"
               type="text"
               className="form-control border-start-0"
               placeholder="Search by ticket number or summary..."

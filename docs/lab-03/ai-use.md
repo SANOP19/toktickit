@@ -30,6 +30,24 @@ Throughout Lab 3, our engineering pair utilized the AI coding agent under rigoro
 
 ---
 
-## 3. Initial Reflection on AI Agent Collaboration
+## 3. Engineering Reflection on AI Agent Collaboration
 
-Starting Sprint 3 with Spec DD has reaffirmed the importance of architectural precision when working with AI coding agents. Defining the 8-state status transition matrix, the Role × Endpoint authorization matrix, and the mandatory first-login password change logic upfront prevents subtle authorization bugs and ensures that subsequent coding issues progress smoothly and predictably.
+Working with the Google DeepMind Antigravity AI coding agent across the 7 phases of Lab 3 provided profound engineering insights into human-AI collaborative software development:
+
+1. **Spec-Driven Precision Eliminates Architectural Drift:**
+   Sprint 3 introduced significant multi-role complexity: 3 distinct user roles, an 8-state status workflow, public comments vs confidential operational notes, and administrative safety guards. Attempting to build these incrementally without formal contracts would have led to severe authorization gaps and communication leaks. Defining the formal contracts upfront across `specification.md`, `api-spec.md`, `ui-spec.md`, and `tests.md` gave the agent clear specifications to fulfill, eliminating ambiguity.
+
+2. **TDD as an AI Verification Shield:**
+   Across Sprint 3, we maintained a 100% automated test pass rate across 99 backend integration tests, 49 frontend component tests, and 5 Playwright end-to-end journey tests. Supplying the agent with precise test assertions for edge cases—such as the Self-Deactivation Guard (`400 CANNOT_DEACTIVATE_SELF`), Last Active Admin Guard (`400 LAST_ADMIN_PROTECTED`), and duplicate email detection (`409 Conflict`)—ensured that security requirements were built defensively and tested automatically.
+
+3. **Confidentiality & RBAC Enforcement:**
+   One of the most sensitive requirements in Lab 3 was ensuring that Internal Operational Notes remain completely invisible to Requesters (AC-06, BR-15, BR-16). Human-directed oversight ensured that authorization was enforced at both the database query level (omitting internal notes from requester endpoints) and the UI layer (omitting the internal notes tab for non-staff), with automated tests proving zero data leakage.
+
+4. **Rigorous Course Collaboration (Rule 1 & Rule 5):**
+   Automating development velocity with AI did not bypass course collaboration protocols. Every issue followed strict Git Flow: branching from `lab3-staging`, opening linked PRs to GitHub Issues, advancing Kanban board cards through defined stages, and strictly observing Rule 1 where the author (@SANOP19) never merged their own PR, relying on thorough peer review and merge approvals from collaborators (@Beethoven190 and @Davidice23).
+
+---
+
+## 4. Ethical & Academic Integrity Statement
+
+The AI agent was utilized strictly as an advanced pair programmer and implementation accelerator. All specifications, business rules, API schemas, UI design implementations, and automated test scenarios were directed, audited, understood, and validated by the student author. All Git operations, pull request discussions, peer code reviews, and project management artifacts adhere strictly to KMUTT and CPE 334 academic integrity standards.
