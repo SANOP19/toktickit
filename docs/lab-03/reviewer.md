@@ -48,5 +48,5 @@ Throughout Sprint 3, our engineering team strictly enforces the core course coll
 | @Beethoven190 | `Beethoven190/toktickit` | #25 | Issue 2: Authentication Foundation | **Approved** | @SANOP19 |
 | @Beethoven190 | `Beethoven190/toktickit` | #27 | Issue 3: IT Staff Ticket Queue | **Approved** | @SANOP19 |
 | @Beethoven190 | `Beethoven190/toktickit` | #29 | Issue 4: IT Staff Ticket Operations | **Approved** | @SANOP19 |
-| @Beethoven190 | `Beethoven190/toktickit` | #31 | Issue 5: Public Comments, Internal Notes & Problem Resolution | **Approved** | @SANOP19 |
-| @Beethoven190 | `Beethoven190/toktickit` | #33 | Issue 6: Admin User Management | **Approved** | @SANOP19 |
+| @Beethoven190 | `Beethoven190/toktickit` | #33 | [PR #33](https://github.com/Beethoven190/toktickit/pull/33) (Issue 6: Admin User Management) | **Approved** | @SANOP19 |
+| @Beethoven190 | `Beethoven190/toktickit` | #34 | [PR #34](https://github.com/Beethoven190/toktickit/pull/34) (Sprint 3 Final Release) | **Approved** | @SANOP19 |
