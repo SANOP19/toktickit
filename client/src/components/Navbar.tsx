@@ -3,8 +3,8 @@ import { useRequester } from "../context/RequesterContext";
 import { useAuth } from "../context/AuthContext";
 
 interface NavbarProps {
-  currentTab: "my-tickets" | "create-ticket" | "staff-queue" | "select-requester";
-  onTabChange: (tab: "my-tickets" | "create-ticket" | "staff-queue" | "select-requester") => void;
+  currentTab: "my-tickets" | "create-ticket" | "staff-queue" | "select-requester" | "user-management";
+  onTabChange: (tab: "my-tickets" | "create-ticket" | "staff-queue" | "select-requester" | "user-management") => void;
   onOpenRequesterModal: () => void;
 }
 
@@ -40,7 +40,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Brand */}
         <button
           className="navbar-brand d-flex align-items-center gap-2 fw-bold text-white btn btn-link text-decoration-none p-0"
-          onClick={() => onTabChange(isStaffOrAdmin ? "staff-queue" : "my-tickets")}
+          onClick={() => onTabChange(user?.role === "ADMINISTRATOR" ? "user-management" : (isStaffOrAdmin ? "staff-queue" : "my-tickets"))}
         >
           <span
             className="d-inline-flex align-items-center justify-content-center rounded-circle bg-white"
@@ -97,6 +97,22 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => onTabChange("staff-queue")}
             >
               🛠️ Ticket Queue
+            </button>
+          )}
+
+          {user?.role === "ADMINISTRATOR" && (
+            <button
+              data-testid="nav-user-management"
+              className={`btn btn-sm text-white px-3 py-1 rounded-pill ${
+                currentTab === "user-management" ? "fw-bold shadow-sm" : "opacity-75"
+              }`}
+              style={{
+                backgroundColor: currentTab === "user-management" ? "#0B7A46" : "transparent",
+                border: "1px solid rgba(255,255,255,0.2)",
+              }}
+              onClick={() => onTabChange("user-management")}
+            >
+              👥 User Management
             </button>
           )}
         </div>

@@ -104,3 +104,18 @@ export interface PaginatedResponse<T> {
     totalPages: number;
   };
 }
+
+export interface CreateUserPayload {
+  name: string;
+  email: string;
+  role: Role;
+  initialPassword: string;
+  isActive?: boolean;
+}
+
+export interface UpdateUserPayload {
+  name?: string;
+  email?: string;
+  role?: Role;
+  isActive?: boolean;
+}

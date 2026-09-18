@@ -11,14 +11,15 @@ import { LoginScreen } from "./components/LoginScreen.js";
 import { MandatoryPasswordChangeModal } from "./components/MandatoryPasswordChangeModal.js";
 import { StaffTicketQueue } from "./components/StaffTicketQueue.js";
 import { StaffTicketDetail } from "./components/StaffTicketDetail.js";
+import { UserManagement } from "./components/UserManagement.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 
 export function AppContent() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { selectedRequester, setSelectedRequester } = useRequester();
-  const [currentTab, setCurrentTab] = useState<"my-tickets" | "create-ticket" | "select-requester" | "staff-queue">(
-    user?.role === "IT_STAFF" || user?.role === "ADMINISTRATOR" ? "staff-queue" : "my-tickets"
+  const [currentTab, setCurrentTab] = useState<"my-tickets" | "create-ticket" | "select-requester" | "staff-queue" | "user-management">(
+    user?.role === "ADMINISTRATOR" ? "user-management" : (user?.role === "IT_STAFF" ? "staff-queue" : "my-tickets")
   );
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [isChangingRequester, setIsChangingRequester] = useState(false);
@@ -35,7 +36,9 @@ export function AppContent() {
           email: user.email,
         });
         setCurrentTab("my-tickets");
-      } else if (user.role === "IT_STAFF" || user.role === "ADMINISTRATOR") {
+      } else if (user.role === "ADMINISTRATOR") {
+        setCurrentTab("user-management");
+      } else if (user.role === "IT_STAFF") {
         setCurrentTab("staff-queue");
       }
     }
@@ -193,6 +196,10 @@ export function AppContent() {
               <StaffTicketQueue
                 onSelectTicket={(t) => setSelectedTicketId(t.id)}
               />
+            )}
+
+            {currentTab === "user-management" && user?.role === "ADMINISTRATOR" && (
+              <UserManagement />
             )}
           </>
         )}

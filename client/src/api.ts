@@ -1,8 +1,8 @@
-import { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment, InternalNote, User } from "./types";
+import { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment, InternalNote, User, CreateUserPayload, UpdateUserPayload } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
-export type { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment, InternalNote, User };
+export type { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment, InternalNote, User, CreateUserPayload, UpdateUserPayload };
 
 export interface SystemStatus {
   online: boolean;
@@ -497,6 +497,83 @@ export async function addInternalNoteApi(ticketId: number, content: string): Pro
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(data?.error?.message || "Failed to post internal note.");
+  }
+  return data;
+}
+
+// ---------------------------------------------------------------------------
+// [Administrator User Management APIs] Lab 3 Issue 6 (FR-11, FR-12, BR-17..21)
+// ---------------------------------------------------------------------------
+
+export async function fetchAdminUsersApi(search?: string, role?: string): Promise<User[]> {
+  const headers: Record<string, string> = {};
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const params = new URLSearchParams();
+  if (search) params.append("search", search);
+  if (role) params.append("role", role);
+
+  const query = params.toString() ? `?${params.toString()}` : "";
+  const res = await fetch(`${API_URL}/api/admin/users${query}`, { headers });
+  const data = await res.json().catch(() => []);
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to fetch users.");
+  }
+  return data;
+}
+
+export async function createAdminUserApi(payload: CreateUserPayload): Promise<User> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/admin/users`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to create user.");
+  }
+  return data;
+}
+
+export async function updateAdminUserApi(id: number, payload: UpdateUserPayload): Promise<User> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/admin/users/${id}`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to update user.");
+  }
+  return data;
+}
+
+export async function resetUserPasswordApi(id: number, newInitialPassword: string): Promise<{ message: string }> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/admin/users/${id}/reset-password`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ newInitialPassword }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to reset password.");
   }
   return data;
 }
