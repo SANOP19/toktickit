@@ -32,7 +32,7 @@ Throughout Sprint 3, our engineering team strictly enforces the core course coll
 | **Issue 3** | `feature/3-requester-continuation` | #27 | [PR #27](https://github.com/SANOP19/toktickit/pull/27) | `lab3-staging` | @Beethoven190 | Approved | @Beethoven190 |
 | **Issue 4** | `feature/4-staff-queue` | #29 | [PR #29](https://github.com/SANOP19/toktickit/pull/29) | `lab3-staging` | @Beethoven190 | Approved | @Beethoven190 |
 | **Issue 5** | `feature/5-staff-ticket-detail` | #31 | [PR #31](https://github.com/SANOP19/toktickit/pull/31) | `lab3-staging` | @Beethoven190 | Approved | @Beethoven190 |
-| **Issue 6** | `feature/6-admin-user-management` | TBD | [PR Link](https://github.com/SANOP19/toktickit/pulls) | `lab3-staging` | Assigned Collaborator | Pending | Pending |
+| **Issue 6** | `feature/6-admin-user-management` | #33 | [PR #33](https://github.com/SANOP19/toktickit/pull/33) | `lab3-staging` | Assigned Collaborator | Pending | Pending |
 | **Release** | `feature/7-docs-e2e-release` | TBD | [PR Link](https://github.com/SANOP19/toktickit/pulls) | `main` | Assigned Collaborator | Pending | Pending |
 
 ---

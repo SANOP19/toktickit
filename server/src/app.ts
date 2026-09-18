@@ -2139,4 +2139,374 @@ const handlePostInternalNote = async (req: Request, res: Response) => {
 app.post("/api/tickets/:id/notes", handlePostInternalNote);
 app.post("/api/staff/tickets/:id/notes", handlePostInternalNote);
 
+// ===========================================================================
+// [Administrator User Management Endpoints] Lab 3 Issue 6 (FR-11, FR-12, BR-17..21, AC-10..13)
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// [Route: List Users] GET /api/admin/users
+// ---------------------------------------------------------------------------
+app.get("/api/admin/users", async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+      return;
+    }
+    if (req.user.role !== "ADMINISTRATOR") {
+      res.status(403).json({ error: { code: "FORBIDDEN", message: "Access denied. Administrator role required." } });
+      return;
+    }
+
+    const { search, role } = req.query;
+    const searchStr = typeof search === "string" ? search.trim().toLowerCase() : "";
+    const roleStr = typeof role === "string" ? role.trim().toUpperCase() : "";
+
+    try {
+      const where: any = {};
+      if (roleStr && ["REQUESTER", "IT_STAFF", "ADMINISTRATOR"].includes(roleStr)) {
+        where.role = roleStr;
+      }
+      if (searchStr) {
+        where.OR = [
+          { name: { contains: searchStr, mode: "insensitive" } },
+          { email: { contains: searchStr, mode: "insensitive" } },
+        ];
+      }
+
+      const users = await getPrisma().user.findMany({
+        where,
+        orderBy: { id: "asc" },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          isActive: true,
+          mustChangePassword: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+      res.status(200).json(users);
+    } catch (_dbErr) {
+      let filtered = [...inMemoryUsers];
+      if (roleStr && ["REQUESTER", "IT_STAFF", "ADMINISTRATOR"].includes(roleStr)) {
+        filtered = filtered.filter((u) => u.role === roleStr);
+      }
+      if (searchStr) {
+        filtered = filtered.filter(
+          (u) =>
+            u.name.toLowerCase().includes(searchStr) ||
+            u.email.toLowerCase().includes(searchStr)
+        );
+      }
+      const sanitized = filtered.map(({ passwordHash: _, ...u }) => u);
+      res.status(200).json(sanitized);
+    }
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to retrieve users." } });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// [Route: Create User] POST /api/admin/users
+// ---------------------------------------------------------------------------
+app.post("/api/admin/users", async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+      return;
+    }
+    if (req.user.role !== "ADMINISTRATOR") {
+      res.status(403).json({ error: { code: "FORBIDDEN", message: "Access denied. Administrator role required." } });
+      return;
+    }
+
+    const { name, email, role, initialPassword, isActive } = req.body;
+
+    if (!name || typeof name !== "string" || !name.trim()) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Name is required." } });
+      return;
+    }
+    if (!email || typeof email !== "string" || !email.trim() || !email.includes("@")) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Valid email address is required." } });
+      return;
+    }
+    const validRoles = ["REQUESTER", "IT_STAFF", "ADMINISTRATOR"];
+    if (!role || !validRoles.includes(role)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Role must be REQUESTER, IT_STAFF, or ADMINISTRATOR." } });
+      return;
+    }
+    if (!initialPassword || typeof initialPassword !== "string" || initialPassword.length < 8) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Initial password must be at least 8 characters long." } });
+      return;
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const activeBool = typeof isActive === "boolean" ? isActive : true;
+
+    // Check duplicate email (BR-20)
+    try {
+      const existing = await getPrisma().user.findUnique({ where: { email: normalizedEmail } });
+      if (existing) {
+        res.status(409).json({ error: { code: "EMAIL_ALREADY_EXISTS", message: "A user with this email address already exists." } });
+        return;
+      }
+    } catch (_dbErr) {
+      const existing = inMemoryUsers.find((u) => u.email.toLowerCase() === normalizedEmail);
+      if (existing) {
+        res.status(409).json({ error: { code: "EMAIL_ALREADY_EXISTS", message: "A user with this email address already exists." } });
+        return;
+      }
+    }
+
+    const hashedPassword = await hashPassword(initialPassword);
+
+    try {
+      const newUser = await getPrisma().user.create({
+        data: {
+          name: name.trim(),
+          email: normalizedEmail,
+          passwordHash: hashedPassword,
+          role: role as any,
+          isActive: activeBool,
+          mustChangePassword: true, // AC-10, BR-21
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          isActive: true,
+          mustChangePassword: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+      res.status(201).json(newUser);
+    } catch (_dbErr) {
+      const newId = inMemoryUsers.length > 0 ? Math.max(...inMemoryUsers.map((u) => u.id)) + 1 : 1;
+      const memUser = {
+        id: newId,
+        name: name.trim(),
+        email: normalizedEmail,
+        passwordHash: hashedPassword,
+        role: role as any,
+        isActive: activeBool,
+        mustChangePassword: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      inMemoryUsers.push(memUser);
+      const { passwordHash: _, ...sanitized } = memUser;
+      res.status(201).json(sanitized);
+    }
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to create user." } });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// [Route: Update User] PATCH /api/admin/users/:id
+// ---------------------------------------------------------------------------
+app.patch("/api/admin/users/:id", async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+      return;
+    }
+    if (req.user.role !== "ADMINISTRATOR") {
+      res.status(403).json({ error: { code: "FORBIDDEN", message: "Access denied. Administrator role required." } });
+      return;
+    }
+
+    const userId = Number(req.params.id);
+    if (isNaN(userId)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid user ID." } });
+      return;
+    }
+
+    const { name, email, role, isActive } = req.body;
+
+    // Fetch current user record
+    let currentUser: any = null;
+    try {
+      currentUser = await getPrisma().user.findUnique({ where: { id: userId } });
+    } catch (_dbErr) {
+      currentUser = inMemoryUsers.find((u) => u.id === userId);
+    }
+
+    if (!currentUser) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "User not found." } });
+      return;
+    }
+
+    // Guard 1: Self-Deactivation Guard (BR-18, AC-11)
+    if (req.user.id === userId && isActive === false) {
+      res.status(400).json({
+        error: {
+          code: "CANNOT_DEACTIVATE_SELF",
+          message: "Administrators cannot deactivate their own account.",
+        },
+      });
+      return;
+    }
+
+    // Guard 2: Last Active Admin Protection Guard (BR-19, AC-12)
+    const isTargetAdminAndActive = currentUser.role === "ADMINISTRATOR" && currentUser.isActive === true;
+    const isDeactivating = typeof isActive === "boolean" && isActive === false;
+    const isDemoting = role && role !== "ADMINISTRATOR";
+
+    if (isTargetAdminAndActive && (isDeactivating || isDemoting)) {
+      let activeAdminCount = 0;
+      try {
+        activeAdminCount = await getPrisma().user.count({
+          where: { role: "ADMINISTRATOR", isActive: true },
+        });
+      } catch (_dbErr) {
+        activeAdminCount = inMemoryUsers.filter((u) => u.role === "ADMINISTRATOR" && u.isActive === true).length;
+      }
+
+      if (activeAdminCount <= 1) {
+        res.status(400).json({
+          error: {
+            code: "LAST_ADMIN_PROTECTED",
+            message: "Cannot deactivate or demote the system's last active Administrator.",
+          },
+        });
+        return;
+      }
+    }
+
+    // Guard 3: Email Uniqueness if email is being updated (BR-20)
+    let normalizedEmail: string | undefined = undefined;
+    if (email && typeof email === "string" && email.trim()) {
+      normalizedEmail = email.trim().toLowerCase();
+      if (normalizedEmail !== currentUser.email.toLowerCase()) {
+        try {
+          const emailCheck = await getPrisma().user.findUnique({ where: { email: normalizedEmail } });
+          if (emailCheck && emailCheck.id !== userId) {
+            res.status(409).json({
+              error: {
+                code: "EMAIL_ALREADY_EXISTS",
+                message: "A user with this email address already exists.",
+              },
+            });
+            return;
+          }
+        } catch (_dbErr) {
+          const emailCheck = inMemoryUsers.find(
+            (u) => u.email.toLowerCase() === normalizedEmail && u.id !== userId
+          );
+          if (emailCheck) {
+            res.status(409).json({
+              error: {
+                code: "EMAIL_ALREADY_EXISTS",
+                message: "A user with this email address already exists.",
+              },
+            });
+            return;
+          }
+        }
+      }
+    }
+
+    const updateData: any = {};
+    if (name && typeof name === "string" && name.trim()) updateData.name = name.trim();
+    if (normalizedEmail) updateData.email = normalizedEmail;
+    if (role && ["REQUESTER", "IT_STAFF", "ADMINISTRATOR"].includes(role)) updateData.role = role;
+    if (typeof isActive === "boolean") updateData.isActive = isActive;
+
+    try {
+      const updated = await getPrisma().user.update({
+        where: { id: userId },
+        data: updateData,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          isActive: true,
+          mustChangePassword: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+      res.status(200).json(updated);
+    } catch (_dbErr) {
+      Object.assign(currentUser, updateData, { updatedAt: new Date().toISOString() });
+      const { passwordHash: _, ...sanitized } = currentUser;
+      res.status(200).json(sanitized);
+    }
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to update user." } });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// [Route: Reset Password] POST /api/admin/users/:id/reset-password
+// ---------------------------------------------------------------------------
+app.post("/api/admin/users/:id/reset-password", async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+      return;
+    }
+    if (req.user.role !== "ADMINISTRATOR") {
+      res.status(403).json({ error: { code: "FORBIDDEN", message: "Access denied. Administrator role required." } });
+      return;
+    }
+
+    const userId = Number(req.params.id);
+    if (isNaN(userId)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid user ID." } });
+      return;
+    }
+
+    const { newInitialPassword } = req.body;
+    if (!newInitialPassword || typeof newInitialPassword !== "string" || newInitialPassword.length < 8) {
+      res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "New initial password must be at least 8 characters long.",
+        },
+      });
+      return;
+    }
+
+    let targetUser: any = null;
+    try {
+      targetUser = await getPrisma().user.findUnique({ where: { id: userId } });
+    } catch (_dbErr) {
+      targetUser = inMemoryUsers.find((u) => u.id === userId);
+    }
+
+    if (!targetUser) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "User not found." } });
+      return;
+    }
+
+    const hashedPassword = await hashPassword(newInitialPassword);
+
+    try {
+      await getPrisma().user.update({
+        where: { id: userId },
+        data: {
+          passwordHash: hashedPassword,
+          mustChangePassword: true, // BR-21
+        },
+      });
+    } catch (_dbErr) {
+      targetUser.passwordHash = hashedPassword;
+      targetUser.mustChangePassword = true;
+    }
+
+    res.status(200).json({
+      message: "Password reset successfully. User must change password at next login.",
+    });
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to reset password." } });
+  }
+});
+
 export default app;
