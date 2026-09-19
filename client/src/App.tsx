@@ -27,6 +27,7 @@ export function AppContent() {
   // Sync authenticated user with RequesterContext and set default tab
   const prevUserIdRef = React.useRef<number | null>(null);
   useEffect(() => {
+    setSelectedTicketId(null);
     if (user && prevUserIdRef.current !== user.id) {
       prevUserIdRef.current = user.id;
       if (user.role === "REQUESTER") {

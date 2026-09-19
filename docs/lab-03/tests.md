@@ -20,9 +20,9 @@ The Sprint 3 testing architecture establishes rigorous validation across all tie
 | **API-05** | API | AC-03, BR-02 | Change password for quarantined user | HTTP 200, password updated, `mustChangePassword` cleared | `server/tests/lab-03/auth.api.test.ts` | Pass |
 | **API-06** | API | AC-04, BR-05 | Requester queries tickets | Returns only tickets where `requesterId == req.user.id` | `server/tests/lab-03/authorization.api.test.ts` | Pass |
 | **API-07** | API | AC-04, BR-06 | Requester accesses other's ticket | HTTP 404/403 without leaking data | `server/tests/lab-03/authorization.api.test.ts` | Pass |
-| **API-08** | API | AC-06, BR-15 | Requester requests Internal Notes | HTTP 403 Forbidden with zero notes returned | `server/tests/lab-03/comments-notes.api.test.ts` | Pass |
-| **API-09** | API | AC-05, BR-14 | Post Public Comment on ticket | HTTP 201 Created, comment visible to requester and staff | `server/tests/lab-03/comments-notes.api.test.ts` | Pass |
-| **API-10** | API | AC-06, BR-15 | IT Staff posts Internal Note | HTTP 201 Created, internal note saved with staff author | `server/tests/lab-03/comments-notes.api.test.ts` | Pass |
+| **API-08** | API | AC-06, BR-15 | Requester requests Internal Notes | HTTP 403 Forbidden with zero notes returned | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Pass |
+| **API-09** | API | AC-05, BR-14 | Post Public Comment on ticket | HTTP 201 Created, comment visible to requester and staff | `server/tests/lab-03/requester-continuation.api.test.ts` | Pass |
+| **API-10** | API | AC-06, BR-15 | IT Staff posts Internal Note | HTTP 201 Created, internal note saved with staff author | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Pass |
 | **API-11** | API | AC-07, BR-08 | IT Staff queries ticket queue | Returns paginated queue matching search and filter parameters | `server/tests/lab-03/staff-queue.api.test.ts` | Pass |
 | **API-12** | API | AC-08, BR-12 | IT Staff claims unassigned ticket | Ticket `ownerId` set to staff member; status advances to Open | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Pass |
 | **API-13** | API | AC-08, BR-11 | Update IT Priority | `itPriority` updated; `requestedPriority` remains untouched | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Pass |
@@ -49,11 +49,11 @@ The Sprint 3 testing architecture establishes rigorous validation across all tie
 ## 3. Test Execution Commands
 
 ```bash
-# Execute Backend API & Security Suites
+# Execute Backend API & Security Suites (Server)
 cd server
-npm test
+npm test -- --run
 
-# Execute Frontend Component Suites
+# Execute Frontend Component Suites (Client)
 cd ../client
 npm test
 
@@ -61,3 +61,66 @@ npm test
 cd ..
 npx playwright test e2e/lab-03/
 ```
+
+---
+
+## 4. Final Test Execution Results & Metrics
+
+All automated test suites across all three architectural layers pass 100% with zero disabled or skipped tests:
+
+### 4.1 Backend Integration & Security Suites (`npm test -- --run` in `server/`)
+```text
+ ✓ tests/lab-01/health.test.ts (1 test)
+ ✓ tests/lab-01/categories.test.ts (1 test)
+ ✓ tests/lab-02/requester-context.api.test.ts (2 tests)
+ ✓ tests/lab-02/create-ticket.api.test.ts (3 tests)
+ ✓ tests/lab-02/my-tickets.api.test.ts (4 tests)
+ ✓ tests/lab-02/ticket-detail.api.test.ts (3 tests)
+ ✓ tests/lab-03/staff-queue.api.test.ts (13 tests)
+ ✓ tests/lab-03/requester-continuation.api.test.ts (9 tests)
+ ✓ tests/lab-03/authorization.api.test.ts (3 tests)
+ ✓ tests/lab-02/attachments.api.test.ts (7 tests)
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts (22 tests)
+ ✓ tests/lab-03/users-admin.api.test.ts (19 tests)
+ ✓ tests/lab-03/auth.api.test.ts (12 tests)
+
+ Test Files  13 passed (13)
+      Tests  99 passed (99)
+   Duration  1.77s
+```
+
+### 4.2 Frontend Component Suites (`npm test` in `client/`)
+```text
+ ✓ tests/lab-03/ChangePassword.test.tsx (4 tests)
+ ✓ tests/lab-03/Login.test.tsx (6 tests)
+ ✓ tests/lab-02/MyTickets.test.tsx (3 tests)
+ ✓ tests/lab-01/App.test.tsx (3 tests)
+ ✓ tests/lab-02/RequesterContext.test.tsx (2 tests)
+ ✓ tests/lab-02/CreateTicket.test.tsx (3 tests)
+ ✓ tests/lab-03/StaffTicketQueue.test.tsx (7 tests)
+ ✓ tests/lab-03/RequesterContinuation.test.tsx (3 tests)
+ ✓ tests/lab-02/TicketDetail.test.tsx (3 tests)
+ ✓ tests/lab-03/StaffTicketDetail.test.tsx (8 tests)
+ ✓ tests/lab-03/UserManagement.test.tsx (7 tests)
+
+ Test Files  11 passed (11)
+      Tests  49 passed (49)
+   Duration  4.49s
+```
+
+### 4.3 Playwright End-to-End Multi-Role Suites (`npx playwright test e2e/lab-03/`)
+```text
+  ok [chromium] › e2e/lab-03/authentication.spec.ts: valid credentials login across Requester, IT Staff, and Admin roles
+  ok [chromium] › e2e/lab-03/authentication.spec.ts: inactive account login is rejected with HTTP 401 and error message
+  ok [chromium] › e2e/lab-03/authentication.spec.ts: first-login quarantine intercepts user and forces password change
+  ok [chromium] › e2e/lab-03/staff-ticket-flow.spec.ts: full operational ticket lifecycle across Requester and IT Staff personas
+  ok [chromium] › e2e/lab-03/user-administration.spec.ts: admin user provisioning, role editing, self-deactivation protection, and password reset
+
+  5 passed (7.4s)
+```
+
+### 4.4 Summary Quality Metrics
+- **Total Automated Test Suites:** 27 test files
+- **Total Passing Automated Tests:** 153 tests (100% pass rate)
+- **Regression Defects:** 0
+- **TypeScript Compilation Errors:** 0 (`tsc` on server, `tsc && vite build` on client)
