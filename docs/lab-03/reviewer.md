@@ -85,10 +85,11 @@ As part of collaborative peer review, @SANOP19 conducted comprehensive code revi
 
 | Peer Author | Peer Repo | PR # | Issue Reviewed | Review Decision | Merged By |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| @Beethoven190 | `Beethoven190/toktickit` | #23 | Issue 1: Sprint 3 Engineering Contract | **Approved** | @SANOP19 |
-| @Beethoven190 | `Beethoven190/toktickit` | #25 | Issue 2: Authentication Foundation | **Approved** | @SANOP19 |
-| @Beethoven190 | `Beethoven190/toktickit` | #27 | Issue 3: IT Staff Ticket Queue | **Approved** | @SANOP19 |
-| @Beethoven190 | `Beethoven190/toktickit` | #29 | Issue 4: IT Staff Ticket Operations | **Approved** | @SANOP19 |
+| @Beethoven190 | `Beethoven190/toktickit` | #23 | [PR #23](https://github.com/Beethoven190/toktickit/pull/23) (Issue 1: Sprint 3 Engineering Contract) | **Approved** | @SANOP19 |
+| @Beethoven190 | `Beethoven190/toktickit` | #25 | [PR #25](https://github.com/Beethoven190/toktickit/pull/25) (Issue 2: Authentication Foundation) | **Approved** | @SANOP19 |
+| @Beethoven190 | `Beethoven190/toktickit` | #27 | [PR #27](https://github.com/Beethoven190/toktickit/pull/27) (Issue 3: IT Staff Ticket Queue) | **Approved** | @SANOP19 |
+| @Beethoven190 | `Beethoven190/toktickit` | #29 | [PR #29](https://github.com/Beethoven190/toktickit/pull/29) (Issue 4: IT Staff Ticket Operations) | **Approved** | @SANOP19 |
+| @Beethoven190 | `Beethoven190/toktickit` | #31 | [PR #31](https://github.com/Beethoven190/toktickit/pull/31) (Issue 5: Public Comments, Internal Notes & Problem Resolved) | **Approved** | @SANOP19 |
 | @Beethoven190 | `Beethoven190/toktickit` | #33 | [PR #33](https://github.com/Beethoven190/toktickit/pull/33) (Issue 6: Admin User Management) | **Approved** | @SANOP19 |
 | @Beethoven190 | `Beethoven190/toktickit` | #34 | [PR #34](https://github.com/Beethoven190/toktickit/pull/34) (Sprint 3 Final Release) | **Approved** | @SANOP19 |
 
@@ -114,9 +115,14 @@ As part of collaborative peer review, @SANOP19 conducted comprehensive code revi
 - **Review Finding:** Confirmed that Requesters cannot see internal notes, status transitions reject illegal jumps with HTTP 400, and claim updates ownership.
 - **Outcome:** **Approved and merged** into peer `lab3-staging` by @SANOP19.
 
+#### Peer PR #31 (Author: @Beethoven190 — Issue 5: Public Comments, Internal Notes & Problem Resolved)
+- **Review Scope:** Evaluated Public Comments (`GET/POST /api/tickets/:id/comments`), confidential Internal Notes (`GET/POST /api/tickets/:id/notes`), and Requester resolution indication (`POST /api/tickets/:id/resolve-indication`).
+- **Review Finding:** Verified that Requester access to `/api/tickets/:id/notes` is strictly blocked with HTTP 403 Forbidden without leaking note existence (AC-14, BR-05). Verified that Requesters can toggle problem resolution indication without changing formal ticket status (FR-07, BR-07). Verified input length constraints (1–2,000 chars) and distinct visual separation between green comments and amber-bordered internal notes.
+- **Outcome:** **Approved and merged** into peer `lab3-staging` by @SANOP19.
+
 #### Peer PR #33 (Author: @Beethoven190 — Issue 6: Administrator User Management)
 - **Review Scope:** Evaluated user listing, account creation, role editing, password reset modal, and administrative safety guards.
-- **Review Finding:** Tested Self-Deactivation Guard (HTTP 400), Last Active Admin Guard (HTTP 400), and verified that password reset flags `mustChangePassword = true`.
+- **Review Finding:** Tested Self-Deactivation Guard (HTTP 400), Last Active Admin Guard (HTTP 400), ticket ownership safety, and verified that password reset flags `mustChangePassword = true`.
 - **Outcome:** **Approved and merged** into peer `lab3-staging` by @SANOP19.
 
 #### Peer PR #34 (Author: @Beethoven190 — Sprint 3 Final Release)
