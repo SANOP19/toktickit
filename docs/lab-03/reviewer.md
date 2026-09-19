@@ -5,7 +5,6 @@
 **Project:** TokTickIT Multi-Role Service Desk Platform  
 **Repository Author:** Nitithorn Ketkaew ([@SANOP19](https://github.com/SANOP19) — Student ID: `67070505203`)  
 **Collaborators & Peer Reviewers:** Supanut Watthanasimakorn ([@Beethoven190](https://github.com/Beethoven190) — Student ID: `67070505226`), Wachirawit Photchamnian ([@Davidice23](https://github.com/Davidice23))  
-**Cross-Review Collaborators:** [@Sxr1n](https://github.com/Sxr1n), [@FramePongrit](https://github.com/FramePongrit)  
 
 ---
 
