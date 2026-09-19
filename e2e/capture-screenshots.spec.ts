@@ -63,7 +63,7 @@ test.describe("Automated Screenshot Capture for Lab 3 Report", () => {
     await page.locator("#login-email-input").fill("admin.john@example.com");
     await page.locator("#login-password-input").fill("Password123!");
     await page.locator("#login-submit-button").click();
-    await expect(page.getByText("👤 John Smith")).toBeVisible();
+    await expect(page.locator(".navbar").getByText("👤 John Smith")).toBeVisible();
 
     const quarantineEmail = `quarantine.${Date.now()}@example.com`;
     await page.getByTestId("nav-user-management").click();
@@ -107,7 +107,7 @@ test.describe("Automated Screenshot Capture for Lab 3 Report", () => {
     await page.locator("#login-email-input").fill("jennifer.a@example.com");
     await page.locator("#login-password-input").fill("Password123!");
     await page.locator("#login-submit-button").click();
-    await expect(page.getByText("👤 Jennifer Anderson")).toBeVisible();
+    await expect(page.locator(".navbar").getByText("👤 Jennifer Anderson")).toBeVisible();
     await page.screenshot({
       path: path.join(screenshotDir, "authentication/08-requester-authenticated-shell.png"),
       fullPage: true,
@@ -129,7 +129,7 @@ test.describe("Automated Screenshot Capture for Lab 3 Report", () => {
     await page.locator("#login-email-input").fill("admin.john@example.com");
     await page.locator("#login-password-input").fill("Password123!");
     await page.locator("#login-submit-button").click();
-    await expect(page.getByText("👤 John Smith")).toBeVisible();
+    await expect(page.locator(".navbar").getByText("👤 John Smith")).toBeVisible();
     await page.screenshot({
       path: path.join(screenshotDir, "authentication/10-admin-authenticated-shell.png"),
       fullPage: true,
@@ -199,7 +199,7 @@ test.describe("Automated Screenshot Capture for Lab 3 Report", () => {
     await page.locator("#login-email-input").fill("jennifer.a@example.com");
     await page.locator("#login-password-input").fill("Password123!");
     await page.locator("#login-submit-button").click();
-    await expect(page.getByText("👤 Jennifer Anderson")).toBeVisible();
+    await expect(page.locator(".navbar").getByText("👤 Jennifer Anderson")).toBeVisible();
 
     await page.getByTestId("nav-create-ticket").click();
     const summary = `Screenshot Capture Ticket ${Date.now()}`;
@@ -308,7 +308,7 @@ test.describe("Automated Screenshot Capture for Lab 3 Report", () => {
     await page.locator("#login-email-input").fill("admin.john@example.com");
     await page.locator("#login-password-input").fill("Password123!");
     await page.locator("#login-submit-button").click();
-    await expect(page.getByText("👤 John Smith")).toBeVisible();
+    await expect(page.locator(".navbar").getByText("👤 John Smith")).toBeVisible();
     await page.getByTestId("nav-user-management").click();
     await expect(page.getByRole("heading", { name: /User Management/i })).toBeVisible();
 
