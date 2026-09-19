@@ -20,7 +20,7 @@ test.describe("Multi-Role Authentication & Password Quarantine (E2E-01)", () => 
     await page.locator("#login-submit-button").click();
 
     // Verify Requester Session
-    await expect(page.getByText("👤 Jennifer Anderson")).toBeVisible();
+    await expect(page.locator(".navbar").getByText("👤 Jennifer Anderson")).toBeVisible();
     await expect(page.getByText("Requester", { exact: true })).toBeVisible();
     await expect(page.getByTestId("nav-my-tickets")).toBeVisible();
     await expect(page.getByTestId("nav-create-ticket")).toBeVisible();
@@ -35,7 +35,7 @@ test.describe("Multi-Role Authentication & Password Quarantine (E2E-01)", () => 
     await page.locator("#login-submit-button").click();
 
     // Verify IT Staff Session
-    await expect(page.getByText("👤 Alex Thompson")).toBeVisible();
+    await expect(page.locator(".navbar").getByText("👤 Alex Thompson")).toBeVisible();
     await expect(page.getByText("IT Staff", { exact: true })).toBeVisible();
     await expect(page.getByTestId("nav-staff-queue")).toBeVisible();
 
@@ -49,7 +49,7 @@ test.describe("Multi-Role Authentication & Password Quarantine (E2E-01)", () => 
     await page.locator("#login-submit-button").click();
 
     // Verify Administrator Session
-    await expect(page.getByText("👤 John Smith")).toBeVisible();
+    await expect(page.locator(".navbar").getByText("👤 John Smith")).toBeVisible();
     await expect(page.getByText("Admin", { exact: true })).toBeVisible();
     await expect(page.getByTestId("nav-user-management")).toBeVisible();
 
