@@ -148,6 +148,7 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
           <div className="input-group input-group-sm">
             <span className="input-group-text bg-white border-end-0 text-muted" id="search-addon">🔍</span>
             <input
+              id="ticketSearchInput"
               type="text"
               className="form-control border-start-0"
               placeholder="Search by ticket number or summary..."
@@ -293,9 +294,20 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
                       </span>
                     </td>
                     <td>
-                      <span className={`badge ${getStatusBadgeClass(t.currentStatus)}`}>
-                        {t.currentStatus}
-                      </span>
+                      <div className="d-flex align-items-center gap-1">
+                        <span className={`badge ${getStatusBadgeClass(t.currentStatus)}`}>
+                          {t.currentStatus}
+                        </span>
+                        {t.isRequesterResolved && (
+                          <span
+                            className="badge border"
+                            style={{ fontSize: "10px", backgroundColor: "#EAF6EF", color: "#006B3C", borderColor: "#006B3C" }}
+                            title="Requester indicated problem appears resolved"
+                          >
+                            ✓ Resolved
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="text-muted small">
                       {new Date(t.updatedAt || t.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
@@ -317,7 +329,17 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
               >
                 <div className="d-flex justify-content-between align-items-center mb-1">
                   <span className="fw-bold small" style={{ color: "#006B3C" }}>{t.ticketNumber}</span>
-                  <span className={`badge ${getStatusBadgeClass(t.currentStatus)}`}>{t.currentStatus}</span>
+                  <div className="d-flex align-items-center gap-1">
+                    <span className={`badge ${getStatusBadgeClass(t.currentStatus)}`}>{t.currentStatus}</span>
+                    {t.isRequesterResolved && (
+                      <span
+                        className="badge border"
+                        style={{ fontSize: "10px", backgroundColor: "#EAF6EF", color: "#006B3C", borderColor: "#006B3C" }}
+                      >
+                        ✓ Resolved
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="fw-medium text-dark mb-2 small">{t.summary}</div>
                 <div className="d-flex justify-content-between align-items-center text-muted small" style={{ fontSize: "11px" }}>

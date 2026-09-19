@@ -1,19 +1,49 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { checkSystem, Category } from "./api.js";
 import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
+import { AuthProvider, useAuth } from "./context/AuthContext.js";
 import { Navbar } from "./components/Navbar.js";
 import { DevRequesterSelector } from "./components/DevRequesterSelector.js";
 import { CreateTicket } from "./components/CreateTicket.js";
 import { MyTickets } from "./components/MyTickets.js";
 import TicketDetail from "./components/TicketDetail.js";
+import { LoginScreen } from "./components/LoginScreen.js";
+import { MandatoryPasswordChangeModal } from "./components/MandatoryPasswordChangeModal.js";
+import { StaffTicketQueue } from "./components/StaffTicketQueue.js";
+import { StaffTicketDetail } from "./components/StaffTicketDetail.js";
+import { UserManagement } from "./components/UserManagement.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 
 export function AppContent() {
-  const { selectedRequester } = useRequester();
-  const [currentTab, setCurrentTab] = useState<"my-tickets" | "create-ticket" | "select-requester">("my-tickets");
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const { selectedRequester, setSelectedRequester } = useRequester();
+  const [currentTab, setCurrentTab] = useState<"my-tickets" | "create-ticket" | "select-requester" | "staff-queue" | "user-management">(
+    user?.role === "ADMINISTRATOR" ? "user-management" : (user?.role === "IT_STAFF" ? "staff-queue" : "my-tickets")
+  );
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [isChangingRequester, setIsChangingRequester] = useState(false);
+
+  // Sync authenticated user with RequesterContext and set default tab
+  const prevUserIdRef = React.useRef<number | null>(null);
+  useEffect(() => {
+    setSelectedTicketId(null);
+    if (user && prevUserIdRef.current !== user.id) {
+      prevUserIdRef.current = user.id;
+      if (user.role === "REQUESTER") {
+        setSelectedRequester({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        });
+        setCurrentTab("my-tickets");
+      } else if (user.role === "ADMINISTRATOR") {
+        setCurrentTab("user-management");
+      } else if (user.role === "IT_STAFF") {
+        setCurrentTab("staff-queue");
+      }
+    }
+  }, [user, setSelectedRequester]);
 
   // System check state (retained from Lab 1)
   const [state, setState] = useState<UiState>("idle");
@@ -34,10 +64,25 @@ export function AppContent() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="d-flex align-items-center justify-content-center vh-100" style={{ backgroundColor: "#F5F7F6" }}>
+        <div className="spinner-border text-success" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginScreen />;
+  }
+
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F5F7F6" }}>
+      <MandatoryPasswordChangeModal />
       <Navbar
-        currentTab={selectedTicketId !== null ? "my-tickets" : currentTab}
+        currentTab={selectedTicketId !== null ? (user?.role === "IT_STAFF" || user?.role === "ADMINISTRATOR" ? "staff-queue" : "my-tickets") : currentTab}
         onTabChange={(tab) => {
           setSelectedTicketId(null);
           setCurrentTab(tab);
@@ -55,12 +100,25 @@ export function AppContent() {
             }}
             onCancel={() => setIsChangingRequester(false)}
           />
-        ) : selectedTicketId !== null && selectedRequester ? (
-          <TicketDetail
-            ticketId={selectedTicketId}
-            currentRequester={selectedRequester}
-            onBack={() => setSelectedTicketId(null)}
-          />
+        ) : selectedTicketId !== null ? (
+          user && (user.role === "IT_STAFF" || user.role === "ADMINISTRATOR") ? (
+            <StaffTicketDetail
+              ticketId={selectedTicketId}
+              onBack={() => setSelectedTicketId(null)}
+            />
+          ) : (
+            <TicketDetail
+              ticketId={selectedTicketId}
+              currentRequester={
+                selectedRequester || {
+                  id: user?.id || 1,
+                  name: user?.name || "Staff",
+                  email: user?.email || "staff@example.com",
+                }
+              }
+              onBack={() => setSelectedTicketId(null)}
+            />
+          )
         ) : (
           <>
             {/* System Status section from Lab 1 */}
@@ -134,6 +192,16 @@ export function AppContent() {
                 }}
               />
             )}
+
+            {currentTab === "staff-queue" && (
+              <StaffTicketQueue
+                onSelectTicket={(t) => setSelectedTicketId(t.id)}
+              />
+            )}
+
+            {currentTab === "user-management" && user?.role === "ADMINISTRATOR" && (
+              <UserManagement />
+            )}
           </>
         )}
       </main>
@@ -143,8 +211,10 @@ export function AppContent() {
 
 export default function App() {
   return (
-    <RequesterProvider>
-      <AppContent />
-    </RequesterProvider>
+    <AuthProvider>
+      <RequesterProvider>
+        <AppContent />
+      </RequesterProvider>
+    </AuthProvider>
   );
 }

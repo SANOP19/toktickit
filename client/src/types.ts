@@ -1,3 +1,19 @@
+export type Role = "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: Role;
+  isActive: boolean;
+  mustChangePassword: boolean;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: User;
+}
+
 export interface RequesterUser {
   id: number;
   name: string;
@@ -29,14 +45,43 @@ export interface Attachment {
 
 export type TicketPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 
+export interface TicketComment {
+  id: number;
+  ticketId: number;
+  authorId: number;
+  author: {
+    id: number;
+    name: string;
+    role: Role;
+  };
+  content: string;
+  createdAt: string;
+}
+
+export interface InternalNote {
+  id: number;
+  ticketId: number;
+  authorId: number;
+  author: {
+    id: number;
+    name: string;
+    role: Role;
+  };
+  content: string;
+  createdAt: string;
+}
+
 export interface Ticket {
   id: number;
   ticketNumber: string;
   summary: string;
   description: string;
   requestedPriority: TicketPriority;
+  itPriority?: TicketPriority | null;
   currentStatus: string;
+  isRequesterResolved?: boolean;
   requesterId: number;
+  ownerId?: number | null;
   categoryId: number;
   relatedSystemId: number;
   createdAt: string;
@@ -44,7 +89,10 @@ export interface Ticket {
   category?: Category;
   relatedSystem?: RelatedSystem;
   requester?: RequesterUser;
+  owner?: User | null;
   attachments?: Attachment[];
+  comments?: TicketComment[];
+  internalNotes?: InternalNote[];
 }
 
 export interface PaginatedResponse<T> {
@@ -55,4 +103,19 @@ export interface PaginatedResponse<T> {
     totalItems: number;
     totalPages: number;
   };
+}
+
+export interface CreateUserPayload {
+  name: string;
+  email: string;
+  role: Role;
+  initialPassword: string;
+  isActive?: boolean;
+}
+
+export interface UpdateUserPayload {
+  name?: string;
+  email?: string;
+  role?: Role;
+  isActive?: boolean;
 }

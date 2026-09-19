@@ -10,7 +10,35 @@ datasource db {
 }
 
 // ---------------------------------------------------------------------------
+// [Enums: Role, TicketStatus, Priority] Core domain enums for Lab 3
+// ---------------------------------------------------------------------------
+enum Role {
+  REQUESTER
+  IT_STAFF
+  ADMINISTRATOR
+}
+
+enum TicketStatus {
+  NEW
+  OPEN
+  IN_PROGRESS
+  WAITING_FOR_REQUESTER
+  RESOLVED
+  CLOSED
+  REOPENED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// ---------------------------------------------------------------------------
 // [Data Model: Category] Reference entity for IT request categories
+// ---------------------------------------------------------------------------
 model Category {
   id        Int      @id @default(autoincrement())
   name      String   @unique
@@ -19,18 +47,30 @@ model Category {
 }
 
 // ---------------------------------------------------------------------------
-// [Data Model: RequesterUser] Lab 2 Development Requester context ("user login")
-model RequesterUser {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  tickets   Ticket[]
+// [Data Model: User] Authenticated multi-role user entity (Lab 3 evolution)
+// ---------------------------------------------------------------------------
+model User {
+  id                 Int            @id @default(autoincrement())
+  name               String
+  email              String         @unique
+  passwordHash       String
+  role               Role           @default(REQUESTER)
+  isActive           Boolean        @default(true)
+  mustChangePassword Boolean        @default(false)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  ticketsRequested   Ticket[]       @relation("RequesterTickets")
+  ticketsAssigned    Ticket[]       @relation("AssignedTickets")
+  comments           Comment[]
+  internalNotes      InternalNote[]
+
+  @@index([role])
+  @@index([email])
 }
 
 // ---------------------------------------------------------------------------
 // [Data Model: RelatedSystem] Reference entity for affected platform/service
+// ---------------------------------------------------------------------------
 model RelatedSystem {
   id        Int      @id @default(autoincrement())
   name      String   @unique
@@ -40,30 +80,40 @@ model RelatedSystem {
 }
 
 // ---------------------------------------------------------------------------
-// [Data Model: Ticket] Core IT support ticket entity
+// [Data Model: Ticket] Core IT support ticket entity with lifecycle & ownership
+// ---------------------------------------------------------------------------
 model Ticket {
-  id                Int           @id @default(autoincrement())
-  ticketNumber      String        @unique
-  summary           String
-  description       String
-  requestedPriority String        @default("MEDIUM")
-  currentStatus     String        @default("New")
-  requesterId       Int
-  requester         RequesterUser @relation(fields: [requesterId], references: [id])
-  categoryId        Int
-  category          Category      @relation(fields: [categoryId], references: [id])
-  relatedSystemId   Int
-  relatedSystem     RelatedSystem @relation(fields: [relatedSystemId], references: [id])
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  attachments       Attachment[]
+  id                  Int            @id @default(autoincrement())
+  ticketNumber        String         @unique
+  summary             String
+  description         String
+  requestedPriority   String         @default("MEDIUM")
+  itPriority          String?
+  currentStatus       String         @default("New")
+  isRequesterResolved Boolean        @default(false)
+  requesterId         Int
+  requester           User           @relation("RequesterTickets", fields: [requesterId], references: [id])
+  ownerId             Int?
+  owner               User?          @relation("AssignedTickets", fields: [ownerId], references: [id])
+  categoryId          Int
+  category            Category       @relation(fields: [categoryId], references: [id])
+  relatedSystemId     Int
+  relatedSystem       RelatedSystem  @relation(fields: [relatedSystemId], references: [id])
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  attachments         Attachment[]
+  comments            Comment[]
+  internalNotes       InternalNote[]
 
   @@index([requesterId])
+  @@index([ownerId])
   @@index([ticketNumber])
+  @@index([currentStatus])
 }
 
 // ---------------------------------------------------------------------------
 // [Data Model: Attachment] Uploaded supporting files with soft-removal rules
+// ---------------------------------------------------------------------------
 model Attachment {
   id            Int       @id @default(autoincrement())
   ticketId      Int
@@ -80,4 +130,36 @@ model Attachment {
   createdAt     DateTime  @default(now())
 
   @@index([ticketId])
+}
+
+// ---------------------------------------------------------------------------
+// [Data Model: Comment] Public conversation messages on tickets
+// ---------------------------------------------------------------------------
+model Comment {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([authorId])
+}
+
+// ---------------------------------------------------------------------------
+// [Data Model: InternalNote] Confidential operational notes for IT staff
+// ---------------------------------------------------------------------------
+model InternalNote {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([authorId])
 }
