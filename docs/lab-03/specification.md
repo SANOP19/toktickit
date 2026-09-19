@@ -121,7 +121,62 @@ The stakeholder requires transitioning TokTickIT from a local development protot
 
 ---
 
-## 6. Acceptance Criteria (AC)
+## 6. UI Specification Summary
+
+The Sprint 3 user interface extends the Zen Green visual language established in Lab 2. Full layout structures, design tokens, typography, and responsive rules are formally detailed in [`docs/lab-03/ui-spec.md`](./ui-spec.md).
+
+### 6.1 Screen Hierarchy & Modes
+1. **Login & First-Login Quarantine View (`/login` / Modal)**: Centered card container (max-width 440px) with inline validation, busy state spinner, and mandatory password change modal with live complexity indicator checklist for flagged users.
+2. **IT Staff Ticket Queue (`/staff/queue`)**: Command center with summary metrics bar, query filter bar (Category, Priority, Status, Ownership, and search), desktop multi-column table (>= 992px), and responsive mobile stacked card list (< 768px).
+3. **IT Staff Ticket Detail (`/staff/tickets/:id`)**: Operational screen with ticket ownership assignment, IT Priority dropdown, permitted status transition dropdown, attachments list, green requester resolution banner, and visually distinct tabbed communication (green/neutral Public Comments vs amber `#F59E0B` confidential Internal Notes).
+4. **Administrator User Management (`/admin/users`)**: Minimalist management table displaying Name, Email, Role, and Status pills, with Create User Modal, Edit User Modal, Reset Password Modal, and visual self-deactivation guard controls.
+
+---
+
+## 7. Data Changes & Migration Decisions
+
+### 7.1 Entity Relationship Model
+- **`RequesterUser` Model Evolution**: Migrated into the unified `User` model with `role` enum (`REQUESTER`, `IT_STAFF`, `ADMINISTRATOR`), `passwordHash` (bcrypt), `isActive` (boolean), and `mustChangePassword` (boolean). Existing Requester IDs and ticket relationships are strictly preserved.
+- **`Ticket` Model Updates**:
+  - `requesterId`: References `User.id` (Foreign Key).
+  - `ownerId`: References `User.id` (Foreign Key, Nullable for unassigned tickets).
+  - `itPriority`: Priority Enum (`LOW`, `MEDIUM`, `HIGH`, `URGENT`), nullable/defaulting to requested priority.
+  - `isRequesterResolved`: Boolean flag (default `false`).
+- **`Comment` Model (New)**: `id`, `ticketId` (FK Ticket), `authorId` (FK User), `content` (String, 1-2000 chars), `createdAt` (DateTime).
+- **`InternalNote` Model (New)**: `id`, `ticketId` (FK Ticket), `authorId` (FK User), `content` (String, 1-2000 chars), `createdAt` (DateTime).
+
+### 7.2 Migration Strategy
+A Prisma migration (`server/prisma/migrations/20260917000000_lab3_auth_models/migration.sql`) alters `RequesterUser` into `User`, adds necessary password and role columns, seeds existing requesters with default initial passwords, and establishes foreign key constraints on Ticket owner, comments, and internal notes without dropping existing tables or data.
+
+---
+
+## 8. API Contract Summary
+
+The REST API contract defines exact paths, request/response bodies, HTTP status codes, and authorization rules. Full endpoint specifications and JSON schemas are detailed in [`docs/lab-03/api-spec.md`](./api-spec.md).
+
+### 8.1 Key Endpoints Overview
+| Method | Endpoint | Allowed Roles | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/auth/login` | Public | Authenticates credentials, returns JWT token and user profile |
+| `GET` | `/api/auth/me` | All Authenticated | Returns current authenticated user session |
+| `POST` | `/api/auth/logout` | All Authenticated | Logs out current session |
+| `POST` | `/api/auth/change-password` | Quarantined / All | Changes password; clears `mustChangePassword` |
+| `GET` | `/api/staff/tickets` | IT_STAFF, ADMIN | Retrieves paginated ticket queue with search, filters, and sort |
+| `GET` | `/api/staff/tickets/:id` | IT_STAFF, ADMIN | Retrieves operational ticket detail for staff |
+| `PATCH` | `/api/staff/tickets/:id/claim` | IT_STAFF, ADMIN | Claims unassigned ticket or assigns to staff member |
+| `PATCH` | `/api/staff/tickets/:id/it-priority` | IT_STAFF, ADMIN | Updates IT operational priority (`LOW`, `MEDIUM`, `HIGH`, `URGENT`) |
+| `PATCH` | `/api/staff/tickets/:id/status` | IT_STAFF, ADMIN | Advances ticket status according to 8-state transition matrix |
+| `GET/POST`| `/api/tickets/:id/comments` | All Roles | Threaded public comments visible to requester and staff |
+| `GET/POST`| `/api/tickets/:id/notes` | IT_STAFF, ADMIN | Confidential internal operational notes (Requester receives 403) |
+| `PATCH` | `/api/tickets/:id/resolve-indication` | REQUESTER | Toggles `isRequesterResolved` flag without changing formal status |
+| `GET` | `/api/admin/users` | ADMINISTRATOR | Lists all user accounts with search and role filters |
+| `POST` | `/api/admin/users` | ADMINISTRATOR | Creates new user with role and initial temporary password |
+| `PATCH` | `/api/admin/users/:id` | ADMINISTRATOR | Updates user profile; guarded against self-deactivation |
+| `POST` | `/api/admin/users/:id/reset-password` | ADMINISTRATOR | Resets user password and flags `mustChangePassword: true` |
+
+---
+
+## 9. Acceptance Criteria (AC)
 
 - **AC-01 (Valid Authentication)**: Given an active user with valid email and password, when `POST /api/auth/login` is executed, then HTTP 200 is returned with a valid JWT token and user profile object.
 - **AC-02 (Inactive Account Rejection)**: Given an account with `isActive=false`, when login is attempted with correct credentials, then HTTP 401 is returned with an inactive account notification.
@@ -141,24 +196,7 @@ The stakeholder requires transitioning TokTickIT from a local development protot
 
 ---
 
-## 7. Data Changes & Migration Decisions
-
-### 7.1 Entity Relationship Model
-- **`RequesterUser` Model Evolution**: Migrated into the unified `User` model with `role` enum (`REQUESTER`, `IT_STAFF`, `ADMINISTRATOR`), `passwordHash`, `isActive`, and `mustChangePassword`. Existing Requester IDs and ticket relationships are strictly preserved.
-- **`Ticket` Model Updates**:
-  - `requesterId`: References `User.id` (Foreign Key).
-  - `ownerId`: References `User.id` (Foreign Key, Nullable for unassigned tickets).
-  - `itPriority`: Priority Enum (`LOW`, `MEDIUM`, `HIGH`, `URGENT`), nullable/defaulting to requested priority.
-  - `isRequesterResolved`: Boolean flag (default `false`).
-- **`Comment` Model (New)**: `id`, `ticketId` (FK Ticket), `authorId` (FK User), `content` (String), `createdAt` (DateTime).
-- **`InternalNote` Model (New)**: `id`, `ticketId` (FK Ticket), `authorId` (FK User), `content` (String), `createdAt` (DateTime).
-
-### 7.2 Migration Strategy
-A Prisma migration (`migration.sql`) alters `RequesterUser` into `User`, adds necessary password and role columns, seeds existing requesters with default initial passwords, and establishes foreign key constraints on Ticket owner, comments, and internal notes without dropping existing tables.
-
----
-
-## 8. Definition of Done (DoD) for Sprint 3
+## 10. Definition of Done (DoD) for Sprint 3
 
 1. **Specification & Contract Compliance**:
    - `docs/lab-03/` specifications (`specification.md`, `api-spec.md`, `ui-spec.md`, `tests.md`) complete and merged prior to implementation PRs.
@@ -177,3 +215,14 @@ A Prisma migration (`migration.sql`) alters `RequesterUser` into `User`, adds ne
    - All work delivered on feature branches merged into `lab3-staging` via peer review (Rule 1 enforced).
    - Final release PR merged into `main`.
    - Comprehensive 9-part PDF report submitted.
+
+---
+
+## 11. Assumptions and Architectural Decisions
+
+1. **BCrypt Salt Rounds**: Chosen `10` rounds for balancing security against request latency in development and automated testing environments.
+2. **JWT Secret & Storage**: Token stored in browser `localStorage` under `token`, transmitted via standard `Authorization: Bearer <token>` HTTP header.
+3. **Stateless Quarantining**: Middleware checks `user.mustChangePassword` on every protected request, ensuring users cannot bypass the change password modal by manual URL navigation.
+4. **Soft Deactivation Over Physical Deletion**: User accounts are deactivated (`isActive: false`) rather than deleted from the database to preserve ticket ownership and comment audit integrity.
+5. **Separation of Concerns Between Roles**: Administrator and IT Staff responsibilities are strictly decoupled; Administrators do not triage tickets unless assigned an IT Staff role.
+

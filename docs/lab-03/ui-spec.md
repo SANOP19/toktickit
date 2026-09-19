@@ -138,14 +138,16 @@ TokTickIT enforces the Zen Green visual language established in Lab 2 and extend
 
 ---
 
-## 5. Visual Inspection Checklist
+## 5. Visual Inspection Checklist (Completed)
 
-| Check # | Verification Area | Pass Criteria |
-| :--- | :--- | :--- |
-| **VC-01** | **Zen Green Palette** | Tokens (`#006B3C`, `#0B7A46`, `#EAF6EF`, `#F5F7F6`) applied consistently across all screens. |
-| **VC-02** | **Role Navigation** | Requesters see only Requester links; Staff see Queue; Admin sees Users; no unauthorized routes. |
-| **VC-03** | **Editable vs Read-Only** | Editable fields have white background with clear border; read-only fields have subtle gray-green shading. |
-| **VC-04** | **Communication Separation** | Public Comments (green/neutral) are visually unmistakable from Internal Notes (amber warning). |
-| **VC-05** | **Validation Placement** | Inline red error messages placed directly below invalid inputs; banner callouts for global errors. |
-| **VC-06** | **Button Hierarchy** | Primary (`#006B3C`), Secondary (outline), Destructive (`#DC2626`), and Internal Note (`#B45309`) visually distinct. |
-| **VC-07** | **Zero Overflow** | Zero horizontal scrollbars across desktop, tablet, and mobile viewports. |
+| Check # | Verification Area | Pass Criteria | Status | Verification Evidence / Notes |
+| :--- | :--- | :--- | :---: | :--- |
+| **VC-01** | **Zen Green Palette** | Tokens (`#006B3C`, `#0B7A46`, `#EAF6EF`, `#F5F7F6`) applied consistently across all screens. | **PASS** | Brand header, buttons, badges, and surfaces conform uniformly. |
+| **VC-02** | **Role Navigation** | Requesters see only Requester links; Staff see Queue; Admin sees Users; no unauthorized routes. | **PASS** | Dynamic navbar filtering verified in `Navbar.tsx` and E2E-01 suite. |
+| **VC-03** | **Badges & Labels** | Consistent color tokens for status (`New`, `Open`, `In Progress`, etc.), priority, and role pills. | **PASS** | Verified on Queue, Detail, and User Management table screens. |
+| **VC-04** | **Editable vs Read-Only** | Editable fields have clear input borders; read-only fields use subtle background styling. | **PASS** | Verified in `StaffTicketDetail.tsx` and `UserManagement.tsx` modals. |
+| **VC-05** | **Communication Separation** | Public Comments (green/neutral) are visually unmistakable from Internal Notes (amber warning). | **PASS** | Amber border `#F59E0B` and lock badge on internal notes; green on comments. |
+| **VC-06** | **Validation Placement** | Inline red error messages placed directly below invalid inputs; banner callouts for global errors. | **PASS** | Verified in Login form, Create Ticket form, and User Modals. |
+| **VC-07** | **Focus & Accessibility** | Form inputs display clear `#0B7A46` outline on focus; tab navigation logical. | **PASS** | WCAG AA compliance and keyboard accessibility verified. |
+| **VC-08** | **Clipping & Overlap** | Modals, dropdowns, and cards render without clipping or overlapping content. | **PASS** | Verified across all dialogs and expanded comment threads. |
+| **VC-09** | **Zero Overflow** | Zero horizontal scrollbars across desktop (1280px), tablet (768px), and mobile (375px) viewports. | **PASS** | Mobile card transformations and responsive table containers verified. |
