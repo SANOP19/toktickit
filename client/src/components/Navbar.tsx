@@ -135,14 +135,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {roleLabels[user.role] || user.role}
                 </span>
               </div>
-              <button
-                className="btn btn-xs btn-light text-dark px-2 py-0 rounded-pill small"
-                style={{ fontSize: "11px", fontWeight: 600 }}
-                onClick={onOpenRequesterModal}
-                title="Switch Development Requester"
-              >
-                Change
-              </button>
+              {import.meta.env.MODE === "test" && (
+                <button
+                  className="btn btn-xs btn-light text-dark px-2 py-0 rounded-pill small"
+                  style={{ fontSize: "11px", fontWeight: 600 }}
+                  onClick={onOpenRequesterModal}
+                  title="Switch Development Requester"
+                >
+                  Change
+                </button>
+              )}
               <button
                 id="nav-logout-btn"
                 className="btn btn-outline-light btn-sm rounded-pill px-3 py-1 fw-medium"
