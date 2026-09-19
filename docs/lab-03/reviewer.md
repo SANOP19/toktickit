@@ -33,7 +33,7 @@ Throughout Sprint 3, our engineering pair strictly enforced all core course coll
 | **Issue 5** | `feature/5-staff-ticket-detail` | #31 | [PR #31](https://github.com/SANOP19/toktickit/pull/31) | `lab3-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
 | **Issue 6** | `feature/6-admin-user-management` | #33 | [PR #33](https://github.com/SANOP19/toktickit/pull/33) | `lab3-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
 | **Issue 7** | `feature/7-docs-e2e` | #35 | [PR #35](https://github.com/SANOP19/toktickit/pull/35) | `lab3-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
-| **Release** | `lab3-staging` | TBD | [Release PR Link](https://github.com/SANOP19/toktickit/pulls) | `main` | @Beethoven190 / @Davidice23 | Pending Review | Pending |
+| **Release** | `lab3-staging` | #37 | [PR #37](https://github.com/SANOP19/toktickit/pull/37) | `main` | @Beethoven190 / @Davidice23 | Pending Review | Pending |
 
 ---
 
@@ -73,6 +73,11 @@ Throughout Sprint 3, our engineering pair strictly enforced all core course coll
 - **Author Summary:** Implemented Playwright multi-role E2E suites (`authentication.spec.ts`, `staff-ticket-flow.spec.ts`, `user-administration.spec.ts`) covering all 3 personas, finalized `tests.md` with Section 4 test execution logs (153/153 passing tests), `ai-use.md` with 7-phase log and ethical integrity statement, and updated `reviewer.md`.
 - **Peer Review Feedback (@Beethoven190):** Verified 100% test pass rate across all 27 automated test files (99 backend, 49 frontend, 5 E2E), verified zero TypeScript/build errors, and confirmed complete DoD compliance.
 - **Outcome:** **Approved and merged** by @Beethoven190 into `lab3-staging`.
+
+#### PR #37 (Sprint 3 Final Release: Merge lab3-staging into main)
+- **Author Summary:** Terminal release Pull Request integrating all Lab 3 deliverables (Issues 1 through 7) from `lab3-staging` into `main`, closing Issue #36.
+- **Peer Review Feedback (@Beethoven190 / @Davidice23):** Final release verification confirming all 153 automated tests pass, zero TypeScript compilation errors, complete screenshot evidence in `artifacts/lab-03/screenshots/`, and unbroken continuity with Lab 2.
+- **Outcome:** Pending review and merge into `main` by assigned collaborator.
 
 ---
 
