@@ -140,11 +140,11 @@ As part of collaborative peer review, @SANOP19 conducted comprehensive code revi
 
 | Check Item | Requirement | Status | Verification Evidence |
 | :--- | :--- | :---: | :--- |
-| **Rule 1: Reviewer Merges** | Author never merges own PR; reviewer inspects and merges | **PASS** | PRs #22, #25, #27, #29, #31, #33, #35 merged by @Beethoven190 |
+| **Rule 1: Reviewer Merges** | Author never merges own PR; reviewer inspects and merges | **PASS** | PRs #22, #25, #27, #29, #31, #33, #35 merged into `lab3-staging`, and PR #37 merged into `main` by @Beethoven190 |
 | **Rule 2: Reply to Comments** | All review comments and suggestions answered and verified | **PASS** | 100% resolution across all PR discussions |
-| **Rule 3: Link PR to Issue** | Every PR linked to corresponding GitHub Issue | **PASS** | Issues #23, #24, #26, #28, #30, #32, #34 linked and closed |
-| **Rule 4: Kanban Progression** | Card moves through Backlog → Specified → Started → PR Review → Done | **PASS** | All 7 cards on Project #3 board transitioned to `Done` |
-| **Rule 5: Branch Strategy** | Feature branches target `lab3-staging`; release targets `main` | **PASS** | All 7 feature branches merged into `lab3-staging` |
+| **Rule 3: Link PR to Issue** | Every PR linked to corresponding GitHub Issue | **PASS** | Issues #23, #24, #26, #28, #30, #32, #34, and #36 linked and closed |
+| **Rule 4: Kanban Progression** | Card moves through Backlog → Specified → Started → PR Review → Done | **PASS** | All Sprint 3 cards (Issues 1–7 & Release Issue #36) on Project #3 board transitioned to `Done` |
+| **Rule 5: Branch Strategy** | Feature branches target `lab3-staging`; release targets `main` | **PASS** | All 7 feature branches merged into `lab3-staging`, and `lab3-staging` merged into `main` via PR #37 |
 | **Backend Integration Tests** | 100% pass rate across Vitest server integration suites | **PASS** | 13 test files, 99/99 passed (1.81s) |
 | **Frontend Component Tests** | 100% pass rate across Vitest client component suites | **PASS** | 11 test files, 49/49 passed (4.66s) |
 | **Playwright E2E Suites** | 100% pass rate across multi-role end-to-end user journeys | **PASS** | 3 test files, 5/5 passed (6.3s) |
