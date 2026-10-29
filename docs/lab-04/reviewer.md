@@ -28,7 +28,7 @@ Throughout Sprint 4, our engineering pair continues to strictly enforce all core
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Issue 1** | `feature/1-sprint4-spec` | #38 | [PR #38](https://github.com/SANOP19/toktickit/pull/38) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
 | **Issue 2** | `feature/2-actions-foundation` | #46 | [PR #46](https://github.com/SANOP19/toktickit/pull/46) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
-| **Issue 3** | `feature/3-actions-ui` | TBD | TBD | `lab4-staging` | @Beethoven190 | Pending | Pending |
+| **Issue 3** | `feature/3-actions-ui` | #47 | [PR #47](https://github.com/SANOP19/toktickit/pull/47) | `lab4-staging` | @Beethoven190 | In Review | Pending |
 | **Issue 4** | `feature/4-ticket-workflow` | TBD | TBD | `lab4-staging` | @Beethoven190 | Pending | Pending |
 | **Issue 5** | `feature/5-dashboards` | TBD | TBD | `lab4-staging` | @Beethoven190 | Pending | Pending |
 | **Issue 6** | `feature/6-final-hardening` | TBD | TBD | `lab4-staging` | @Beethoven190 | Pending | Pending |
