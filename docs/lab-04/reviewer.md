@@ -28,8 +28,8 @@ Throughout Sprint 4, our engineering pair continues to strictly enforce all core
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Issue 1** | `feature/1-sprint4-spec` | #38 | [PR #38](https://github.com/SANOP19/toktickit/pull/38) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
 | **Issue 2** | `feature/2-actions-foundation` | #46 | [PR #46](https://github.com/SANOP19/toktickit/pull/46) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
-| **Issue 3** | `feature/3-actions-ui` | #47 | [PR #47](https://github.com/SANOP19/toktickit/pull/47) | `lab4-staging` | @Beethoven190 | In Review | Pending |
-| **Issue 4** | `feature/4-ticket-workflow` | TBD | TBD | `lab4-staging` | @Beethoven190 | Pending | Pending |
+| **Issue 3** | `feature/3-actions-ui` | #47 | [PR #47](https://github.com/SANOP19/toktickit/pull/47) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
+| **Issue 4** | `feature/4-ticket-workflow` | #48 | [PR #48](https://github.com/SANOP19/toktickit/pull/48) | `lab4-staging` | @Beethoven190 | In Review | Pending |
 | **Issue 5** | `feature/5-dashboards` | TBD | TBD | `lab4-staging` | @Beethoven190 | Pending | Pending |
 | **Issue 6** | `feature/6-final-hardening` | TBD | TBD | `lab4-staging` | @Beethoven190 | Pending | Pending |
 | **Release** | `lab4-staging` | TBD | TBD | `main` | @Beethoven190 | Pending | Pending |
@@ -47,6 +47,16 @@ Throughout Sprint 4, our engineering pair continues to strictly enforce all core
 - **Author Summary:** Extended Prisma schema with `ActionTaken` model and `ActionStatus` enum. Implemented non-destructive database migration and seed data covering 0, 1, and multi-action scenarios. Created REST endpoints (`POST`, `GET`, `PATCH /api/tickets/:id/actions-taken`) enforcing role checks, inactive staff rejection, conditional `followUpNote` validation, and optimistic concurrency version tracking. Authored 12 automated API tests in `server/tests/lab-04/actions-taken.api.test.ts`. Full server regression: 111/111 passing tests.
 - **Peer Review Feedback (@Beethoven190):** Thoroughly verified API endpoints, schema relations, and concurrency conflict handling (HTTP 409). Confirmed all 111 server tests pass with 100% success.
 - **Outcome:** **Approved and merged** by @Beethoven190 into `lab4-staging`.
+
+### PR #47 (Issue 3: Actions Taken Ticket Detail Interface and Responsive Presentation)
+- **Author Summary:** Built `ActionsTakenSection.tsx` and `AddActionTakenModal.tsx` under Zen Green design system tokens. Integrated management mode in `StaffTicketDetail.tsx` and strict read-only presentation in `TicketDetail.tsx` for Requesters. Enforced live conditional validation for follow-up notes (`BR-05, AC-02`) and optimistic concurrency conflict handling (`BR-08, AC-07`). Authored 6 Vitest component tests in `client/tests/lab-04/ActionsTaken.test.tsx`.
+- **Peer Review Feedback (@Beethoven190):** Inspected responsive presentation across viewports, confirmed role isolation cleanly hides add/edit buttons for Requesters, and verified 100% test pass rate across 55 client tests.
+- **Outcome:** **Approved and merged** by @Beethoven190 into `lab4-staging`.
+
+### PR #48 (Issue 4: Ticket Workflow Hardening and Server-Enforced Resolution Gate)
+- **Author Summary:** Enforced the server-side **Resolution Gate** on `PATCH /api/staff/tickets/:id/status`, guaranteeing tickets cannot transition to `Resolved` or `Closed` without at least one recorded Action Taken (HTTP 400 `RESOLUTION_GATE_FAILED`). Ensured Requester problem resolved toggle remains advisory (`isRequesterResolved: true`) without changing formal ticket status. Added Resolution Gate warning banner on `StaffTicketDetail.tsx`. Authored 7 API integration tests (`ticket-workflow.api.test.ts`) and 4 client component tests (`TicketWorkflow.test.tsx`).
+- **Peer Review Feedback (@Beethoven190):** In review.
+- **Outcome:** Pending review by @Beethoven190.
 
 ---
 
