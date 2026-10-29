@@ -235,35 +235,56 @@ async function main() {
         create: t,
       });
 
-      // Add a sample Public Comment and Internal Note for Ticket 1
+      // Seed sample Actions Taken (Sprint 4: parent-child operational log)
       if (t.ticketNumber === "TKT-2026-000101") {
-        await prisma.comment.deleteMany({ where: { ticketId: ticket.id } });
-        await prisma.comment.create({
+        await (prisma as any).actionTaken?.deleteMany({ where: { ticketId: ticket.id } });
+        await (prisma as any).actionTaken?.create({
           data: {
             ticketId: ticket.id,
-            authorId: alex.id,
-            content: "Hello Jennifer, we have ordered a replacement battery module for your laptop.",
+            performedById: alex.id,
+            actionDateTime: new Date("2026-10-29T09:15:00Z"),
+            description: "Ran hardware battery diagnostics and inspected physical cell connectors.",
+            result: "Identified bad cell #3 with voltage drop below 2.4V.",
+            status: "COMPLETED",
+            followUpRequired: true,
+            followUpNote: "Order replacement battery pack and notify requester upon arrival.",
+            attachmentNotes: "battery_diagnostic_report_oct29.pdf",
+            version: 1,
           },
         });
-        await prisma.comment.create({
+        await (prisma as any).actionTaken?.create({
           data: {
             ticketId: ticket.id,
-            authorId: jennifer.id,
-            content: "Thank you Alex! Please let me know when it arrives.",
+            performedById: lisa.id,
+            actionDateTime: new Date("2026-10-29T10:45:00Z"),
+            description: "Received warranty replacement battery pack and installed in chassis.",
+            result: "Full charge cycle reached 100% with stable voltage discharge rate.",
+            status: "COMPLETED",
+            followUpRequired: false,
+            followUpNote: null,
+            attachmentNotes: "post_replacement_power_curve.png",
+            version: 1,
           },
         });
-
-        await prisma.internalNote.deleteMany({ where: { ticketId: ticket.id } });
-        await prisma.internalNote.create({
+      } else if (t.ticketNumber === "TKT-2026-000102") {
+        await (prisma as any).actionTaken?.deleteMany({ where: { ticketId: ticket.id } });
+        await (prisma as any).actionTaken?.create({
           data: {
             ticketId: ticket.id,
-            authorId: alex.id,
-            content: "Diagnostic confirmed cell #3 failure. Warranty replacement tracking code: BAT-99421.",
+            performedById: lisa.id,
+            actionDateTime: new Date("2026-10-29T09:30:00Z"),
+            description: "Reset remote access gateway credentials and cleared active NAT sessions.",
+            result: "User able to complete RADIUS authentication and establish tunnel.",
+            status: "COMPLETED",
+            followUpRequired: false,
+            followUpNote: null,
+            attachmentNotes: "radius_auth_success.log",
+            version: 1,
           },
         });
       }
     }
-    console.log("Sample tickets, public comments, and internal notes seeded successfully.");
+    console.log("Sample tickets, public comments, internal notes, and actions taken seeded successfully.");
   }
 }
 
