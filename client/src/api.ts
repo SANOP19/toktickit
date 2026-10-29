@@ -1,8 +1,8 @@
-import { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment, InternalNote, User, CreateUserPayload, UpdateUserPayload } from "./types";
+import { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment, InternalNote, User, CreateUserPayload, UpdateUserPayload, ActionTaken, CreateActionTakenPayload, UpdateActionTakenPayload } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
-export type { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment, InternalNote, User, CreateUserPayload, UpdateUserPayload };
+export type { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment, InternalNote, User, CreateUserPayload, UpdateUserPayload, ActionTaken, CreateActionTakenPayload, UpdateActionTakenPayload };
 
 export interface SystemStatus {
   online: boolean;
@@ -577,4 +577,58 @@ export async function resetUserPasswordApi(id: number, newInitialPassword: strin
   }
   return data;
 }
+
+// ---------------------------------------------------------------------------
+// [Actions Taken API Helpers] Sprint 4
+// ---------------------------------------------------------------------------
+export async function fetchActionsTaken(ticketId: number): Promise<ActionTaken[]> {
+  const headers: Record<string, string> = {};
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions-taken`, { headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to load Actions Taken.");
+  }
+  return data?.data?.actionsTaken || data?.actionsTaken || (Array.isArray(data) ? data : []);
+}
+
+export async function createActionTakenApi(ticketId: number, payload: CreateActionTakenPayload): Promise<ActionTaken> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions-taken`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to record Action Taken.");
+  }
+  return data?.data || data;
+}
+
+export async function updateActionTakenApi(ticketId: number, actionId: number, payload: UpdateActionTakenPayload): Promise<ActionTaken> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions-taken/${actionId}`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to update Action Taken.");
+  }
+  return data?.data || data;
+}
+
 

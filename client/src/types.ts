@@ -93,6 +93,8 @@ export interface Ticket {
   attachments?: Attachment[];
   comments?: TicketComment[];
   internalNotes?: InternalNote[];
+  actionsTaken?: ActionTaken[];
+  resolutionSummary?: string | null;
 }
 
 export interface PaginatedResponse<T> {
@@ -119,3 +121,50 @@ export interface UpdateUserPayload {
   role?: Role;
   isActive?: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// [Sprint 4: Actions Taken Interfaces]
+// ---------------------------------------------------------------------------
+export type ActionStatus = "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+
+export interface ActionTaken {
+  id: number;
+  ticketId: number;
+  performedById: number;
+  performedBy?: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+  };
+  actionDateTime: string;
+  description: string;
+  result: string;
+  status: ActionStatus;
+  followUpRequired: boolean;
+  followUpNote?: string | null;
+  attachmentNotes?: string | null;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateActionTakenPayload {
+  description: string;
+  result: string;
+  status?: ActionStatus;
+  followUpRequired?: boolean;
+  followUpNote?: string | null;
+  attachmentNotes?: string | null;
+}
+
+export interface UpdateActionTakenPayload {
+  description?: string;
+  result?: string;
+  status?: ActionStatus;
+  followUpRequired?: boolean;
+  followUpNote?: string | null;
+  attachmentNotes?: string | null;
+  version?: number;
+}
+
