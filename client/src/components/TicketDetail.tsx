@@ -4,6 +4,7 @@ import {
   Attachment,
   RequesterUser,
   TicketComment,
+  ActionTaken,
   getTicketDetail,
   uploadAttachment,
   getAttachmentDownloadUrl,
@@ -11,7 +12,9 @@ import {
   getCommentsApi,
   addCommentApi,
   toggleProblemResolvedApi,
+  fetchActionsTaken,
 } from "../api";
+import { ActionsTakenSection } from "./ActionsTakenSection";
 
 interface Props {
   ticketId: number;
@@ -23,6 +26,10 @@ export default function TicketDetail({ ticketId, currentRequester, onBack }: Pro
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+
+  // Communication & Actions Tabs
+  const [activeTab, setActiveTab] = useState<"comments" | "actions">("comments");
+  const [actionsTaken, setActionsTaken] = useState<ActionTaken[]>([]);
 
   // Uploading state
   const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -59,6 +66,13 @@ export default function TicketDetail({ ticketId, currentRequester, onBack }: Pro
         } catch {
           // comments fallback
         }
+      }
+
+      try {
+        const loadedActions = await fetchActionsTaken(ticketId);
+        setActionsTaken(loadedActions || data.actionsTaken || []);
+      } catch {
+        setActionsTaken(data.actionsTaken || []);
       }
     } catch (err: unknown) {
       setError((err as Error).message || "Failed to load ticket details");
@@ -510,111 +524,149 @@ export default function TicketDetail({ ticketId, currentRequester, onBack }: Pro
         </div>
       </div>
 
-      {/* Public Comments Section (Lab 3 Issue 3: BR-13, BR-14, AC-05) */}
+      {/* Communication & Actions Section (Public Comments vs Actions Taken) */}
       <div className="card shadow-sm border-0 mb-4" style={{ borderRadius: 8 }}>
-        <div className="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
-          <h2 className="h6 fw-bold mb-0 text-dark">
-            💬 Public Comments ({comments.length})
-          </h2>
+        <div className="card-header bg-white px-4 pt-3 pb-0 border-bottom">
+          <ul className="nav nav-tabs card-header-tabs" role="tablist">
+            <li className="nav-item">
+              <button
+                type="button"
+                className={`nav-link ${activeTab === "comments" ? "active fw-bold" : "text-muted"}`}
+                style={activeTab === "comments" ? { color: "#006B3C", borderBottom: "3px solid #006B3C" } : {}}
+                onClick={() => setActiveTab("comments")}
+                data-testid="requester-tab-comments"
+              >
+                💬 Public Comments ({comments.length})
+              </button>
+            </li>
+            <li className="nav-item">
+              <button
+                type="button"
+                className={`nav-link ${activeTab === "actions" ? "active fw-bold" : "text-muted"}`}
+                style={activeTab === "actions" ? { color: "#006B3C", borderBottom: "3px solid #006B3C" } : {}}
+                onClick={() => setActiveTab("actions")}
+                data-testid="requester-tab-actions"
+              >
+                🛠️ Actions Taken ({actionsTaken.length})
+              </button>
+            </li>
+          </ul>
         </div>
 
         <div className="card-body p-4">
-          {/* Comments List */}
-          {comments.length === 0 ? (
-            <p className="text-muted small mb-4" data-testid="no-comments-msg">
-              No comments yet on this ticket. Use the form below to communicate with the IT support team.
-            </p>
-          ) : (
-            <div className="d-flex flex-column gap-3 mb-4" data-testid="comments-list">
-              {comments.map((comment) => {
-                const isStaff = comment.author?.role === "IT_STAFF";
-                const isAdmin = comment.author?.role === "ADMINISTRATOR";
-                const roleBadgeStyle = isStaff
-                  ? { backgroundColor: "#0D6EFD", color: "#FFFFFF" }
-                  : isAdmin
-                  ? { backgroundColor: "#212529", color: "#FFFFFF" }
-                  : { backgroundColor: "#EAF6EF", color: "#006B3C", border: "1px solid #006B3C" };
+          {/* TAB 1: Public Comments */}
+          {activeTab === "comments" && (
+            <div data-testid="requester-comments-tab-content">
+              {/* Comments List */}
+              {comments.length === 0 ? (
+                <p className="text-muted small mb-4" data-testid="no-comments-msg">
+                  No comments yet on this ticket. Use the form below to communicate with the IT support team.
+                </p>
+              ) : (
+                <div className="d-flex flex-column gap-3 mb-4" data-testid="comments-list">
+                  {comments.map((comment) => {
+                    const isStaff = comment.author?.role === "IT_STAFF";
+                    const isAdmin = comment.author?.role === "ADMINISTRATOR";
+                    const roleBadgeStyle = isStaff
+                      ? { backgroundColor: "#0D6EFD", color: "#FFFFFF" }
+                      : isAdmin
+                      ? { backgroundColor: "#212529", color: "#FFFFFF" }
+                      : { backgroundColor: "#EAF6EF", color: "#006B3C", border: "1px solid #006B3C" };
 
-                const roleLabel = isStaff ? "IT Staff" : isAdmin ? "Administrator" : "Requester";
+                    const roleLabel = isStaff ? "IT Staff" : isAdmin ? "Administrator" : "Requester";
 
-                return (
-                  <div
-                    key={comment.id}
-                    className="p-3 rounded-3"
-                    style={{
-                      backgroundColor: isStaff ? "#F0F7FF" : "#FAFBFB",
-                      border: `1px solid ${isStaff ? "#B6D4FE" : "#E5E7EB"}`,
-                    }}
-                    data-testid={`comment-item-${comment.id}`}
-                  >
-                    <div className="d-flex justify-content-between align-items-center mb-2">
-                      <div className="d-flex align-items-center gap-2">
-                        <span className="fw-semibold text-dark">
-                          {comment.author?.name || "User"}
-                        </span>
-                        <span className="badge" style={roleBadgeStyle}>
-                          {roleLabel}
-                        </span>
+                    return (
+                      <div
+                        key={comment.id}
+                        className="p-3 rounded-3"
+                        style={{
+                          backgroundColor: isStaff ? "#F0F7FF" : "#FAFBFB",
+                          border: `1px solid ${isStaff ? "#B6D4FE" : "#E5E7EB"}`,
+                        }}
+                        data-testid={`comment-item-${comment.id}`}
+                      >
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                          <div className="d-flex align-items-center gap-2">
+                            <span className="fw-semibold text-dark">
+                              {comment.author?.name || "User"}
+                            </span>
+                            <span className="badge" style={roleBadgeStyle}>
+                              {roleLabel}
+                            </span>
+                          </div>
+                          <span className="text-muted small">
+                            {formatDate(comment.createdAt)}
+                          </span>
+                        </div>
+                        <div
+                          className="text-dark small"
+                          style={{ whiteSpace: "pre-wrap" }}
+                        >
+                          {comment.content}
+                        </div>
                       </div>
-                      <span className="text-muted small">
-                        {formatDate(comment.createdAt)}
-                      </span>
-                    </div>
-                    <div
-                      className="text-dark small"
-                      style={{ whiteSpace: "pre-wrap" }}
-                    >
-                      {comment.content}
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* New Comment Input Form */}
+              <form onSubmit={handlePostComment} className="p-3 bg-light rounded-3" data-testid="comment-form">
+                <label htmlFor="new-comment-input" className="form-label fw-semibold small text-dark mb-1">
+                  Add Public Comment
+                </label>
+                <textarea
+                  id="new-comment-input"
+                  className={`form-control ${commentError ? "is-invalid" : ""}`}
+                  rows={3}
+                  maxLength={2000}
+                  placeholder="Type your message or update for the IT support team here..."
+                  value={newCommentText}
+                  onChange={(e) => {
+                    setNewCommentText(e.target.value);
+                    if (commentError) setCommentError("");
+                  }}
+                  disabled={isPostingComment}
+                  data-testid="new-comment-textarea"
+                />
+                {commentError && <div className="invalid-feedback d-block">{commentError}</div>}
+
+                <div className="d-flex justify-content-between align-items-center mt-2">
+                  <span className="text-muted small">
+                    {newCommentText.length} / 2,000 characters
+                  </span>
+                  <button
+                    type="submit"
+                    className="btn btn-sm text-white px-3"
+                    style={{ backgroundColor: "#006B3C", borderColor: "#006B3C" }}
+                    disabled={isPostingComment || !newCommentText.trim()}
+                    data-testid="submit-comment-btn"
+                  >
+                    {isPostingComment ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" />
+                        Posting...
+                      </>
+                    ) : (
+                      "Post Comment"
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
           )}
 
-          {/* New Comment Input Form */}
-          <form onSubmit={handlePostComment} className="p-3 bg-light rounded-3" data-testid="comment-form">
-            <label htmlFor="new-comment-input" className="form-label fw-semibold small text-dark mb-1">
-              Add Public Comment
-            </label>
-            <textarea
-              id="new-comment-input"
-              className={`form-control ${commentError ? "is-invalid" : ""}`}
-              rows={3}
-              maxLength={2000}
-              placeholder="Type your message or update for the IT support team here..."
-              value={newCommentText}
-              onChange={(e) => {
-                setNewCommentText(e.target.value);
-                if (commentError) setCommentError("");
-              }}
-              disabled={isPostingComment}
-              data-testid="new-comment-textarea"
-            />
-            {commentError && <div className="invalid-feedback d-block">{commentError}</div>}
-
-            <div className="d-flex justify-content-between align-items-center mt-2">
-              <span className="text-muted small">
-                {newCommentText.length} / 2,000 characters
-              </span>
-              <button
-                type="submit"
-                className="btn btn-sm text-white px-3"
-                style={{ backgroundColor: "#006B3C", borderColor: "#006B3C" }}
-                disabled={isPostingComment || !newCommentText.trim()}
-                data-testid="submit-comment-btn"
-              >
-                {isPostingComment ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" />
-                    Posting...
-                  </>
-                ) : (
-                  "Post Comment"
-                )}
-              </button>
+          {/* TAB 2: Actions Taken (Read-only for Requesters) */}
+          {activeTab === "actions" && (
+            <div data-testid="requester-actions-tab-content">
+              <ActionsTakenSection
+                ticketId={ticket.id}
+                actions={actionsTaken}
+                isStaffView={false}
+                onRefresh={loadTicket}
+              />
             </div>
-          </form>
+          )}
         </div>
       </div>
 
