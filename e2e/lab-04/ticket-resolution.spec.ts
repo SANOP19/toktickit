@@ -160,7 +160,9 @@ test.describe("Resolution Gate Enforcement & Status Workflow (E2E-02)", () => {
     await expect(page.getByText(/has indicated that this issue appears resolved/i)).toBeVisible();
 
     // Advance status to Closed
+    await expect(page.getByTestId("staff-status-select")).toBeVisible();
     await page.getByTestId("staff-status-select").selectOption("Closed");
+    await expect(page.getByTestId("update-status-btn")).toBeEnabled();
     await page.getByTestId("update-status-btn").click();
     await expect(page.getByText(/status advanced to Closed/i)).toBeVisible();
 
