@@ -29,7 +29,7 @@ Throughout Sprint 4, our engineering pair continues to strictly enforce all core
 | **Issue 1** | `feature/1-sprint4-spec` | #38 | [PR #38](https://github.com/SANOP19/toktickit/pull/38) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
 | **Issue 2** | `feature/2-actions-foundation` | #46 | [PR #46](https://github.com/SANOP19/toktickit/pull/46) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
 | **Issue 3** | `feature/3-actions-ui` | #47 | [PR #47](https://github.com/SANOP19/toktickit/pull/47) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
-| **Issue 4** | `feature/4-ticket-workflow` | #48 | [PR #48](https://github.com/SANOP19/toktickit/pull/48) | `lab4-staging` | @Beethoven190 | In Review | Pending |
+| **Issue 4** | `feature/4-ticket-workflow` | #48 | [PR #48](https://github.com/SANOP19/toktickit/pull/48) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
 | **Issue 5** | `feature/5-dashboards` | TBD | TBD | `lab4-staging` | @Beethoven190 | Pending | Pending |
 | **Issue 6** | `feature/6-final-hardening` | TBD | TBD | `lab4-staging` | @Beethoven190 | Pending | Pending |
 | **Release** | `lab4-staging` | TBD | TBD | `main` | @Beethoven190 | Pending | Pending |
@@ -55,8 +55,8 @@ Throughout Sprint 4, our engineering pair continues to strictly enforce all core
 
 ### PR #48 (Issue 4: Ticket Workflow Hardening and Server-Enforced Resolution Gate)
 - **Author Summary:** Enforced the server-side **Resolution Gate** on `PATCH /api/staff/tickets/:id/status`, guaranteeing tickets cannot transition to `Resolved` or `Closed` without at least one recorded Action Taken (HTTP 400 `RESOLUTION_GATE_FAILED`). Ensured Requester problem resolved toggle remains advisory (`isRequesterResolved: true`) without changing formal ticket status. Added Resolution Gate warning banner on `StaffTicketDetail.tsx`. Authored 7 API integration tests (`ticket-workflow.api.test.ts`) and 4 client component tests (`TicketWorkflow.test.tsx`).
-- **Peer Review Feedback (@Beethoven190):** In review.
-- **Outcome:** Pending review by @Beethoven190.
+- **Peer Review Feedback (@Beethoven190):** Thoroughly verified Resolution Gate enforcement (HTTP 400 `RESOLUTION_GATE_FAILED` when actions count is 0), advisory nature of requester resolution toggle, and clean UI warning alerts. Confirmed all 118 server tests and 59 client tests pass with 100% success.
+- **Outcome:** **Approved and merged** by @Beethoven190 into `lab4-staging`.
 
 ---
 
@@ -66,10 +66,11 @@ Throughout Sprint 4, our engineering pair continues to strictly enforce all core
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **@Beethoven190** | `Beethoven190/toktickit` | #36 | [Issue 1] Sprint 4 Engineering Contracts & Specifications | **Approved** | Merged |
 | **@Beethoven190** | `Beethoven190/toktickit` | #38 | [Issue 2] Actions Taken Backend Foundation, Schema Migration & REST API | **Approved** | Merged |
-| **@Beethoven190** | `Beethoven190/toktickit` | #40 | [Issue 3] Actions Taken Ticket Detail UI, Modal & Component Tests | **Approved** | In Review |
+| **@Beethoven190** | `Beethoven190/toktickit` | #40 | [Issue 3] Actions Taken Ticket Detail UI, Modal & Component Tests | **Approved** | Merged |
+| **@Beethoven190** | `Beethoven190/toktickit` | #42 | [Issue 4] Ticket Lifecycle, Resolution Gate & Concurrency Guards | **Approved** | Merged |
 
 ### Summary of Reciprocal Reviews Conducted:
 - **Beethoven190 PR #36 (Issue 1):** Inspected Sprint 4 engineering specifications, Zen Green UI tokens, and test traceability matrix. Verified all acceptance criteria and rules. Approved.
 - **Beethoven190 PR #38 (Issue 2):** Inspected 992 additions across Prisma schema, migration, seed data, REST endpoints, and 18 new automated integration tests. Verified conditional `followUpNote` enforcement, terminal status guard, and JWT auto-attribution. Submitted comprehensive English review approving the pull request.
 - **Beethoven190 PR #40 (Issue 3):** Inspected Actions Taken frontend implementation across `ActionsTakenSection.tsx`, `StaffTicketDetail.tsx`, and `TicketDetail.tsx`. Verified dynamic follow-up validation (`BR-04, AC-02`), requester read-only mode (`FR-04, AC-03`), and 7 component tests in `client/tests/lab-04/ActionsTaken.test.tsx` (185/185 tests passing). Submitted English review approving the pull request.
-
+- **Beethoven190 PR #42 (Issue 4):** Inspected 8-state transition matrix enforcement, server-side resolution gate with `resolutionSummary` requirements, and optimistic concurrency timestamp conflict handling (`409 STALE_UPDATE_CONFLICT`). Verified 14 backend API tests and 6 frontend component tests (205/205 tests passing). Submitted English review approving the pull request.
