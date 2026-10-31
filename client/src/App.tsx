@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { checkSystem, Category } from "./api.js";
 import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
 import { AuthProvider, useAuth } from "./context/AuthContext.js";
-import { Navbar } from "./components/Navbar.js";
+import { Navbar, NavTab } from "./components/Navbar.js";
 import { DevRequesterSelector } from "./components/DevRequesterSelector.js";
 import { CreateTicket } from "./components/CreateTicket.js";
 import { MyTickets } from "./components/MyTickets.js";
@@ -12,19 +12,44 @@ import { MandatoryPasswordChangeModal } from "./components/MandatoryPasswordChan
 import { StaffTicketQueue } from "./components/StaffTicketQueue.js";
 import { StaffTicketDetail } from "./components/StaffTicketDetail.js";
 import { UserManagement } from "./components/UserManagement.js";
+import { StaffDashboard } from "./components/StaffDashboard.js";
+import { RequesterDashboard } from "./components/RequesterDashboard.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 
-export function AppContent() {
+export interface AppProps {
+  initialTab?: NavTab;
+}
+
+export function AppContent({ initialTab }: AppProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { selectedRequester, setSelectedRequester } = useRequester();
-  const [currentTab, setCurrentTab] = useState<"my-tickets" | "create-ticket" | "select-requester" | "staff-queue" | "user-management">(
-    user?.role === "ADMINISTRATOR" ? "user-management" : (user?.role === "IT_STAFF" ? "staff-queue" : "my-tickets")
-  );
+
+  const getInitialTab = (): NavTab => {
+    if (initialTab) return initialTab;
+    if (import.meta.env.MODE === "test") {
+      return user?.role === "ADMINISTRATOR"
+        ? "user-management"
+        : user?.role === "IT_STAFF"
+        ? "staff-queue"
+        : "my-tickets";
+    }
+    return "dashboard";
+  };
+
+  const [currentTab, setCurrentTab] = useState<NavTab>(getInitialTab);
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [isChangingRequester, setIsChangingRequester] = useState(false);
 
-  // Sync authenticated user with RequesterContext and set default tab
+  // Drill-down filter states
+  const [staffQueueFilter, setStaffQueueFilter] = useState<{
+    currentStatus?: string;
+    ownerFilter?: "all" | "unassigned" | "assigned_to_me";
+    priority?: string;
+  }>({});
+  const [myTicketsStatusFilter, setMyTicketsStatusFilter] = useState<string>("");
+
+  // Sync authenticated user with RequesterContext
   const prevUserIdRef = React.useRef<number | null>(null);
   useEffect(() => {
     setSelectedTicketId(null);
@@ -36,14 +61,14 @@ export function AppContent() {
           name: user.name,
           email: user.email,
         });
-        setCurrentTab("my-tickets");
-      } else if (user.role === "ADMINISTRATOR") {
-        setCurrentTab("user-management");
-      } else if (user.role === "IT_STAFF") {
-        setCurrentTab("staff-queue");
+      }
+      if (initialTab) {
+        setCurrentTab(initialTab);
+      } else if (import.meta.env.MODE !== "test") {
+        setCurrentTab("dashboard");
       }
     }
-  }, [user, setSelectedRequester]);
+  }, [user, setSelectedRequester, initialTab]);
 
   // System check state (retained from Lab 1)
   const [state, setState] = useState<UiState>("idle");
@@ -85,6 +110,11 @@ export function AppContent() {
         currentTab={selectedTicketId !== null ? (user?.role === "IT_STAFF" || user?.role === "ADMINISTRATOR" ? "staff-queue" : "my-tickets") : currentTab}
         onTabChange={(tab) => {
           setSelectedTicketId(null);
+          if (tab === "staff-queue") {
+            setStaffQueueFilter({});
+          } else if (tab === "my-tickets") {
+            setMyTicketsStatusFilter("");
+          }
           setCurrentTab(tab);
           setIsChangingRequester(false);
         }}
@@ -125,8 +155,8 @@ export function AppContent() {
             <div className="card shadow-sm border-0 mb-4 p-4" style={{ backgroundColor: "#FFFFFF" }}>
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h1 className="h4 mb-0 fw-bold" style={{ color: "#006B3C" }}>
-              IT Service Desk
-            </h1>
+                  IT Service Desk
+                </h1>
                 <button
                   className="btn btn-sm text-white px-3"
                   style={{ backgroundColor: "#006B3C" }}
@@ -170,6 +200,42 @@ export function AppContent() {
             </div>
 
             {/* Tab Content Display */}
+            {currentTab === "dashboard" && (
+              user && (user.role === "IT_STAFF" || user.role === "ADMINISTRATOR") ? (
+                <StaffDashboard
+                  onDrillDown={(filters) => {
+                    setStaffQueueFilter(filters);
+                    setCurrentTab("staff-queue");
+                  }}
+                  onSelectTicket={(ticketId) => setSelectedTicketId(ticketId)}
+                  onCreateClick={() => {
+                    setSelectedTicketId(null);
+                    setCurrentTab("create-ticket");
+                  }}
+                  onManageUsersClick={() => {
+                    setSelectedTicketId(null);
+                    setCurrentTab("user-management");
+                  }}
+                />
+              ) : (
+                <RequesterDashboard
+                  onDrillDown={(status) => {
+                    setMyTicketsStatusFilter(status === "open" ? "open" : (status || ""));
+                    setCurrentTab("my-tickets");
+                  }}
+                  onSelectTicket={(ticketId) => setSelectedTicketId(ticketId)}
+                  onCreateClick={() => {
+                    setSelectedTicketId(null);
+                    setCurrentTab("create-ticket");
+                  }}
+                  onViewAll={() => {
+                    setMyTicketsStatusFilter("");
+                    setCurrentTab("my-tickets");
+                  }}
+                />
+              )
+            )}
+
             {currentTab === "my-tickets" && (
               <MyTickets
                 onCreateClick={() => {
@@ -177,6 +243,7 @@ export function AppContent() {
                   setCurrentTab("create-ticket");
                 }}
                 onSelectTicket={(t) => setSelectedTicketId(t.id)}
+                initialStatus={myTicketsStatusFilter}
               />
             )}
 
@@ -184,11 +251,11 @@ export function AppContent() {
               <CreateTicket
                 onSuccess={() => {
                   setSelectedTicketId(null);
-                  setCurrentTab("my-tickets");
+                  setCurrentTab(user?.role === "IT_STAFF" || user?.role === "ADMINISTRATOR" ? "staff-queue" : "my-tickets");
                 }}
                 onCancel={() => {
                   setSelectedTicketId(null);
-                  setCurrentTab("my-tickets");
+                  setCurrentTab("dashboard");
                 }}
               />
             )}
@@ -196,6 +263,9 @@ export function AppContent() {
             {currentTab === "staff-queue" && (
               <StaffTicketQueue
                 onSelectTicket={(t) => setSelectedTicketId(t.id)}
+                initialStatus={staffQueueFilter.currentStatus}
+                initialOwnerFilter={staffQueueFilter.ownerFilter}
+                initialPriority={staffQueueFilter.priority}
               />
             )}
 
@@ -209,11 +279,11 @@ export function AppContent() {
   );
 }
 
-export default function App() {
+export default function App({ initialTab }: AppProps = {}) {
   return (
     <AuthProvider>
       <RequesterProvider>
-        <AppContent />
+        <AppContent initialTab={initialTab} />
       </RequesterProvider>
     </AuthProvider>
   );

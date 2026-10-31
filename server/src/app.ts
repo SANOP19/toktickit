@@ -2533,6 +2533,202 @@ app.patch("/api/tickets/:id/actions-taken/:actionId", handlePatchActionTaken);
 app.patch("/api/staff/tickets/:id/actions-taken/:actionId", handlePatchActionTaken);
 
 // ===========================================================================
+// [Dashboard Endpoints] Lab 4 Issue 5 (FR-09, FR-10, BR-14..18, AC-11..14)
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// [Route: IT Staff Dashboard] GET /api/dashboards/staff
+// ---------------------------------------------------------------------------
+app.get("/api/dashboards/staff", async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+      return;
+    }
+
+    // Role check: Only IT_STAFF and ADMINISTRATOR allowed (BR-16, AC-11)
+    if (req.user.role === "REQUESTER") {
+      res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Forbidden: Requester accounts cannot access IT Staff Dashboard.",
+        },
+      });
+      return;
+    }
+
+    let allTickets: any[] = [];
+    let userActions: any[] = [];
+
+    try {
+      allTickets = await getPrisma().ticket.findMany({
+        include: { category: true, owner: true },
+        orderBy: { updatedAt: "desc" },
+      });
+
+      userActions = await (getPrisma() as any).actionTaken.findMany({
+        where: { performedById: req.user.id },
+        include: { ticket: { select: { ticketNumber: true } } },
+        orderBy: { actionDateTime: "desc" },
+        take: 5,
+      });
+    } catch (_dbErr) {
+      allTickets = inMemoryTickets;
+      userActions = inMemoryActionsTaken
+        .filter((a) => a.performedById === req.user!.id)
+        .sort((a, b) => new Date(b.actionDateTime).getTime() - new Date(a.actionDateTime).getTime())
+        .slice(0, 5);
+    }
+
+    const newTickets = allTickets.filter((t: any) => t.currentStatus && t.currentStatus.toLowerCase() === "new").length;
+    const openTickets = allTickets.filter((t: any) => t.currentStatus && t.currentStatus.toLowerCase() === "open").length;
+    const inProgressTickets = allTickets.filter(
+      (t: any) => t.currentStatus && ["in progress", "in_progress"].includes(t.currentStatus.toLowerCase())
+    ).length;
+    const waitingForRequester = allTickets.filter(
+      (t: any) => t.currentStatus && ["waiting for requester", "waiting_for_requester"].includes(t.currentStatus.toLowerCase())
+    ).length;
+    const myAssignedTickets = allTickets.filter(
+      (t: any) => t.ownerId === req.user!.id && (!t.currentStatus || !["closed", "cancelled"].includes(t.currentStatus.toLowerCase()))
+    ).length;
+    const urgentTickets = allTickets.filter((t: any) => {
+      const p = (t.itPriority || t.requestedPriority || "").toUpperCase();
+      const status = (t.currentStatus || "").toLowerCase();
+      return p === "URGENT" && !["closed", "cancelled"].includes(status);
+    }).length;
+
+    const metrics = {
+      newTickets,
+      openTickets,
+      inProgressTickets,
+      waitingForRequester,
+      myAssignedTickets,
+      urgentTickets,
+    };
+
+    const sortedTickets = [...allTickets].sort(
+      (a: any, b: any) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
+    );
+
+    const recentTickets = sortedTickets.slice(0, 5).map((t: any) => ({
+      id: t.id,
+      ticketNumber: t.ticketNumber,
+      summary: t.summary,
+      category: t.category?.name || (typeof t.category === "string" ? t.category : "General"),
+      itPriority: t.itPriority || t.requestedPriority || "MEDIUM",
+      currentStatus: t.currentStatus,
+      ownerName: t.owner?.name || (t.ownerId ? `Staff #${t.ownerId}` : "Unassigned"),
+      updatedAt: t.updatedAt || t.createdAt,
+    }));
+
+    const myRecentActions = userActions.map((a: any) => {
+      let tNum = a.ticket?.ticketNumber;
+      if (!tNum) {
+        const t = allTickets.find((tick: any) => tick.id === a.ticketId);
+        tNum = t?.ticketNumber || `TKT-${a.ticketId}`;
+      }
+      return {
+        id: a.id,
+        ticketId: a.ticketId,
+        ticketNumber: tNum,
+        description: a.description,
+        status: a.status,
+        actionDateTime: a.actionDateTime,
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        metrics,
+        recentTickets,
+        myRecentActions,
+      },
+      metrics,
+      recentTickets,
+      myRecentActions,
+    });
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to generate staff dashboard." } });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// [Route: Requester Personal Dashboard] GET /api/dashboards/requester
+// ---------------------------------------------------------------------------
+app.get("/api/dashboards/requester", async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+      return;
+    }
+
+    let userTickets: any[] = [];
+
+    try {
+      userTickets = await getPrisma().ticket.findMany({
+        where: { requesterId: req.user.id },
+        include: { category: true },
+        orderBy: { updatedAt: "desc" },
+      });
+    } catch (_dbErr) {
+      userTickets = inMemoryTickets.filter((t: any) => t.requesterId === req.user!.id);
+    }
+
+    const myOpenTickets = userTickets.filter((t: any) => {
+      const status = (t.currentStatus || "").toLowerCase();
+      return !["resolved", "closed", "cancelled"].includes(status);
+    }).length;
+    const inProgressTickets = userTickets.filter((t: any) => {
+      const status = (t.currentStatus || "").toLowerCase();
+      return ["in progress", "in_progress"].includes(status);
+    }).length;
+    const resolvedTickets = userTickets.filter((t: any) => {
+      const status = (t.currentStatus || "").toLowerCase();
+      return status === "resolved";
+    }).length;
+    const closedTickets = userTickets.filter((t: any) => {
+      const status = (t.currentStatus || "").toLowerCase();
+      return status === "closed";
+    }).length;
+
+    const metrics = {
+      myOpenTickets,
+      inProgressTickets,
+      resolvedTickets,
+      closedTickets,
+    };
+
+    const sortedUserTickets = [...userTickets].sort(
+      (a: any, b: any) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
+    );
+
+    const recentTickets = sortedUserTickets.slice(0, 5).map((t: any) => ({
+      id: t.id,
+      ticketNumber: t.ticketNumber,
+      summary: t.summary,
+      category: t.category?.name || (typeof t.category === "string" ? t.category : "General"),
+      requestedPriority: t.requestedPriority || "MEDIUM",
+      currentStatus: t.currentStatus,
+      isRequesterResolved: Boolean(t.isRequesterResolved),
+      updatedAt: t.updatedAt || t.createdAt,
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        metrics,
+        recentTickets,
+      },
+      metrics,
+      recentTickets,
+    });
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to generate requester dashboard." } });
+  }
+});
+
+// ===========================================================================
 // [Administrator User Management Endpoints] Lab 3 Issue 6 (FR-11, FR-12, BR-17..21, AC-10..13)
 // ===========================================================================
 

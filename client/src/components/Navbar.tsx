@@ -2,9 +2,11 @@ import React from "react";
 import { useRequester } from "../context/RequesterContext";
 import { useAuth } from "../context/AuthContext";
 
+export type NavTab = "dashboard" | "my-tickets" | "create-ticket" | "staff-queue" | "select-requester" | "user-management";
+
 interface NavbarProps {
-  currentTab: "my-tickets" | "create-ticket" | "staff-queue" | "select-requester" | "user-management";
-  onTabChange: (tab: "my-tickets" | "create-ticket" | "staff-queue" | "select-requester" | "user-management") => void;
+  currentTab: NavTab;
+  onTabChange: (tab: NavTab) => void;
   onOpenRequesterModal: () => void;
 }
 
@@ -40,7 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Brand */}
         <button
           className="navbar-brand d-flex align-items-center gap-2 fw-bold text-white btn btn-link text-decoration-none p-0"
-          onClick={() => onTabChange(user?.role === "ADMINISTRATOR" ? "user-management" : (isStaffOrAdmin ? "staff-queue" : "my-tickets"))}
+          onClick={() => onTabChange("dashboard")}
         >
           <span
             className="d-inline-flex align-items-center justify-content-center rounded-circle bg-white"
@@ -52,7 +54,22 @@ export const Navbar: React.FC<NavbarProps> = ({
         </button>
 
         {/* Navigation Links */}
-        <div className="d-flex align-items-center gap-2 me-auto ms-3">
+        <div className="d-flex align-items-center gap-2 me-auto ms-3 flex-wrap">
+          {/* Dashboard Tab for All Authenticated Users */}
+          <button
+            data-testid="nav-dashboard"
+            className={`btn btn-sm text-white px-3 py-1 rounded-pill ${
+              currentTab === "dashboard" ? "fw-bold shadow-sm" : "opacity-75"
+            }`}
+            style={{
+              backgroundColor: currentTab === "dashboard" ? "#0B7A46" : "transparent",
+              border: "1px solid rgba(255,255,255,0.2)",
+            }}
+            onClick={() => onTabChange("dashboard")}
+          >
+            📊 Dashboard
+          </button>
+
           {(!user || user.role === "REQUESTER") && (
             <>
               <button
@@ -85,19 +102,35 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
 
           {isStaffOrAdmin && (
-            <button
-              data-testid="nav-staff-queue"
-              className={`btn btn-sm text-white px-3 py-1 rounded-pill ${
-                currentTab === "staff-queue" ? "fw-bold shadow-sm" : "opacity-75"
-              }`}
-              style={{
-                backgroundColor: currentTab === "staff-queue" ? "#0B7A46" : "transparent",
-                border: "1px solid rgba(255,255,255,0.2)",
-              }}
-              onClick={() => onTabChange("staff-queue")}
-            >
-              🛠️ Ticket Queue
-            </button>
+            <>
+              <button
+                data-testid="nav-staff-queue"
+                className={`btn btn-sm text-white px-3 py-1 rounded-pill ${
+                  currentTab === "staff-queue" ? "fw-bold shadow-sm" : "opacity-75"
+                }`}
+                style={{
+                  backgroundColor: currentTab === "staff-queue" ? "#0B7A46" : "transparent",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                }}
+                onClick={() => onTabChange("staff-queue")}
+              >
+                🛠️ Ticket Queue
+              </button>
+
+              <button
+                data-testid="nav-create-ticket"
+                className={`btn btn-sm text-white px-3 py-1 rounded-pill ${
+                  currentTab === "create-ticket" ? "fw-bold shadow-sm" : "opacity-75"
+                }`}
+                style={{
+                  backgroundColor: currentTab === "create-ticket" ? "#0B7A46" : "transparent",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                }}
+                onClick={() => onTabChange("create-ticket")}
+              >
+                ➕ Create Ticket
+              </button>
+            </>
           )}
 
           {user?.role === "ADMINISTRATOR" && (
@@ -125,7 +158,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="d-flex align-items-center gap-2 px-3 py-1 rounded-pill"
                 style={{ backgroundColor: "rgba(255, 255, 255, 0.18)" }}
               >
-                <span className="text-white small fw-medium">
+                <span
+                  className="text-white small fw-medium"
+                >
                   👤 {user.name}
                 </span>
                 <span
@@ -159,7 +194,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="d-flex align-items-center gap-2 px-3 py-1 rounded-pill"
               style={{ backgroundColor: "rgba(255, 255, 255, 0.15)" }}
             >
-              <span className="text-white small fw-medium">
+              <span
+                className="text-white small fw-medium"
+              >
                 👤 {selectedRequester.name}
               </span>
               <button

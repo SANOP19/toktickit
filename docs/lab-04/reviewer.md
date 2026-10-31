@@ -30,7 +30,7 @@ Throughout Sprint 4, our engineering pair continues to strictly enforce all core
 | **Issue 2** | `feature/2-actions-foundation` | #46 | [PR #46](https://github.com/SANOP19/toktickit/pull/46) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
 | **Issue 3** | `feature/3-actions-ui` | #47 | [PR #47](https://github.com/SANOP19/toktickit/pull/47) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
 | **Issue 4** | `feature/4-ticket-workflow` | #48 | [PR #48](https://github.com/SANOP19/toktickit/pull/48) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
-| **Issue 5** | `feature/5-dashboards` | TBD | TBD | `lab4-staging` | @Beethoven190 | Pending | Pending |
+| **Issue 5** | `feature/5-dashboards` | #49 | [PR #49](https://github.com/SANOP19/toktickit/pull/49) | `lab4-staging` | @Beethoven190 | Pending | Pending |
 | **Issue 6** | `feature/6-final-hardening` | TBD | TBD | `lab4-staging` | @Beethoven190 | Pending | Pending |
 | **Release** | `lab4-staging` | TBD | TBD | `main` | @Beethoven190 | Pending | Pending |
 
@@ -57,6 +57,15 @@ Throughout Sprint 4, our engineering pair continues to strictly enforce all core
 - **Author Summary:** Enforced the server-side **Resolution Gate** on `PATCH /api/staff/tickets/:id/status`, guaranteeing tickets cannot transition to `Resolved` or `Closed` without at least one recorded Action Taken (HTTP 400 `RESOLUTION_GATE_FAILED`). Ensured Requester problem resolved toggle remains advisory (`isRequesterResolved: true`) without changing formal ticket status. Added Resolution Gate warning banner on `StaffTicketDetail.tsx`. Authored 7 API integration tests (`ticket-workflow.api.test.ts`) and 4 client component tests (`TicketWorkflow.test.tsx`).
 - **Peer Review Feedback (@Beethoven190):** Thoroughly verified Resolution Gate enforcement (HTTP 400 `RESOLUTION_GATE_FAILED` when actions count is 0), advisory nature of requester resolution toggle, and clean UI warning alerts. Confirmed all 118 server tests and 59 client tests pass with 100% success.
 - **Outcome:** **Approved and merged** by @Beethoven190 into `lab4-staging`.
+
+### PR #49 (Issue 5: Role-Appropriate Operational Dashboards for IT Staff and Requesters)
+- **Author Summary:** Implemented authoritative role-appropriate dashboards adhering strictly to Teacher Mockup 1 (Handout Page 5) and Teacher Mockup 2 (Handout Page 6).
+  - **Backend Aggregation APIs:** Added `GET /api/dashboards/staff` (computing `newTickets`, `openTickets`, `inProgressTickets`, `waitingForRequester`, `myAssignedTickets`, `urgentTickets`, `recentTickets`, and `myRecentActions`) and `GET /api/dashboards/requester` (strictly isolated to authenticated requester with `myOpenTickets`, `inProgressTickets`, `resolvedTickets`, `closedTickets`, and `recentTickets`). Supported dual persistence with Prisma and in-memory fallbacks.
+  - **Frontend UI Components:** Created `StaffDashboard.tsx` featuring greeting, real-time Refresh button, 5 interactive KPI cards, urgent tickets alert banner, recent operational tickets table, and quick actions. Created `RequesterDashboard.tsx` featuring greeting, Refresh button, 4 personal KPI metric cards, recent requests list, and quick actions.
+  - **Interactive Drill-Down Navigation:** Connected KPI cards to pre-filtered queue/ticket views in `StaffTicketQueue` and `MyTickets`. Updated `Navbar.tsx` and `App.tsx` with role-appropriate dashboard navigation.
+  - **Automated Test Suites:** Authored 16 backend API integration tests (`staff-dashboard.api.test.ts` & `requester-dashboard.api.test.ts`) and 14 frontend component tests (`StaffDashboard.test.tsx` & `RequesterDashboard.test.tsx`). Verified 100% regression pass rate (134/134 server tests, 73/73 client tests, 207/207 total passed) and clean client build.
+- **Peer Review Feedback (@Beethoven190):** [Pending Review]
+- **Outcome:** Submitted for peer review; pending approval and merge by @Beethoven190 into `lab4-staging`.
 
 ---
 

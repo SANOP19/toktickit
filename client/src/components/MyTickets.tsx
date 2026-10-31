@@ -6,9 +6,10 @@ import { Ticket, TicketPriority } from "../types";
 interface MyTicketsProps {
   onCreateClick?: () => void;
   onSelectTicket?: (ticket: Ticket) => void;
+  initialStatus?: string;
 }
 
-export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTicket }) => {
+export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTicket, initialStatus }) => {
   const { selectedRequester } = useRequester();
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -20,7 +21,13 @@ export const MyTickets: React.FC<MyTicketsProps> = ({ onCreateClick, onSelectTic
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [priority, setPriority] = useState<string>("");
-  const [status, setStatus] = useState<string>("");
+  const [status, setStatus] = useState<string>(initialStatus || "");
+
+  useEffect(() => {
+    if (initialStatus !== undefined) {
+      setStatus(initialStatus);
+    }
+  }, [initialStatus]);
   const [page, setPage] = useState(1);
   const [limit] = useState(8);
   const [totalPages, setTotalPages] = useState(1);
