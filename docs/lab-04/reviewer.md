@@ -32,7 +32,7 @@ Throughout Sprint 4, our engineering pair continues to strictly enforce all core
 | **Issue 4** | `feature/4-ticket-workflow` | #48 | [PR #48](https://github.com/SANOP19/toktickit/pull/48) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
 | **Issue 5** | `feature/5-dashboards` | #49 | [PR #49](https://github.com/SANOP19/toktickit/pull/49) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
 | **Issue 6** | `feature/6-final-hardening` | #50 | [PR #50](https://github.com/SANOP19/toktickit/pull/50) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
-| **Release** | `lab4-staging` | TBD | TBD | `main` | @Beethoven190 | Pending | Pending |
+| **Release** | `lab4-staging` | #51 | [PR #51](https://github.com/SANOP19/toktickit/pull/51) | `main` | @Beethoven190 | In Review | Pending |
 
 ---
 
