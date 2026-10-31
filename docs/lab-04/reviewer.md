@@ -4,7 +4,7 @@
 **Semester:** 1/2026  
 **Project:** TokTickIT Multi-Role Service Desk Platform  
 **Repository Author:** Nitithorn Ketkaew ([@SANOP19](https://github.com/SANOP19) — Student ID: `67070505203`)  
-**Collaborators & Peer Reviewers:** Supanut Watthanasimakorn ([@Beethoven190](https://github.com/Beethoven190) — Student ID: `67070505226`), Wachirawit Photchamnian ([@Davidice23](https://github.com/Davidice23))
+**Collaborators & Peer Reviewers:** Supanut Watthanasimakorn ([@Beethoven190](https://github.com/Beethoven190) — Student ID: `67070505226`), Wachirawit Photchamnian ([@Davidice23](https://github.com/Davidice23)), Narakorn ([@narakosi-dev](https://github.com/narakosi-dev))
 
 ---
 
@@ -30,7 +30,7 @@ Throughout Sprint 4, our engineering pair continues to strictly enforce all core
 | **Issue 2** | `feature/2-actions-foundation` | #46 | [PR #46](https://github.com/SANOP19/toktickit/pull/46) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
 | **Issue 3** | `feature/3-actions-ui` | #47 | [PR #47](https://github.com/SANOP19/toktickit/pull/47) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
 | **Issue 4** | `feature/4-ticket-workflow` | #48 | [PR #48](https://github.com/SANOP19/toktickit/pull/48) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
-| **Issue 5** | `feature/5-dashboards` | #49 | [PR #49](https://github.com/SANOP19/toktickit/pull/49) | `lab4-staging` | @Beethoven190 | Pending | Pending |
+| **Issue 5** | `feature/5-dashboards` | #49 | [PR #49](https://github.com/SANOP19/toktickit/pull/49) | `lab4-staging` | @Beethoven190 | **Approved** | @Beethoven190 |
 | **Issue 6** | `feature/6-final-hardening` | TBD | TBD | `lab4-staging` | @Beethoven190 | Pending | Pending |
 | **Release** | `lab4-staging` | TBD | TBD | `main` | @Beethoven190 | Pending | Pending |
 
@@ -64,8 +64,8 @@ Throughout Sprint 4, our engineering pair continues to strictly enforce all core
   - **Frontend UI Components:** Created `StaffDashboard.tsx` featuring greeting, real-time Refresh button, 5 interactive KPI cards, urgent tickets alert banner, recent operational tickets table, and quick actions. Created `RequesterDashboard.tsx` featuring greeting, Refresh button, 4 personal KPI metric cards, recent requests list, and quick actions.
   - **Interactive Drill-Down Navigation:** Connected KPI cards to pre-filtered queue/ticket views in `StaffTicketQueue` and `MyTickets`. Updated `Navbar.tsx` and `App.tsx` with role-appropriate dashboard navigation.
   - **Automated Test Suites:** Authored 16 backend API integration tests (`staff-dashboard.api.test.ts` & `requester-dashboard.api.test.ts`) and 14 frontend component tests (`StaffDashboard.test.tsx` & `RequesterDashboard.test.tsx`). Verified 100% regression pass rate (134/134 server tests, 73/73 client tests, 207/207 total passed) and clean client build.
-- **Peer Review Feedback (@Beethoven190):** [Pending Review]
-- **Outcome:** Submitted for peer review; pending approval and merge by @Beethoven190 into `lab4-staging`.
+- **Peer Review Feedback (@Beethoven190):** Thoroughly inspected IT Staff and Requester dashboards against Teacher Mockups 1 & 2, authoritative backend aggregation endpoints, strict requester isolation (zero data leakage), and drill-down navigation. Confirmed all 207 tests pass with 100% success.
+- **Outcome:** **Approved and merged** by @Beethoven190 into `lab4-staging`.
 
 ---
 
@@ -77,9 +77,13 @@ Throughout Sprint 4, our engineering pair continues to strictly enforce all core
 | **@Beethoven190** | `Beethoven190/toktickit` | #38 | [Issue 2] Actions Taken Backend Foundation, Schema Migration & REST API | **Approved** | Merged |
 | **@Beethoven190** | `Beethoven190/toktickit` | #40 | [Issue 3] Actions Taken Ticket Detail UI, Modal & Component Tests | **Approved** | Merged |
 | **@Beethoven190** | `Beethoven190/toktickit` | #42 | [Issue 4] Ticket Lifecycle, Resolution Gate & Concurrency Guards | **Approved** | Merged |
+| **@Beethoven190** | `Beethoven190/toktickit` | #43 | [Issue 5] Role-Appropriate Operational Dashboards, Authoritative Metrics & Drilldown | **Approved** | Merged |
+| **@narakosi-dev** | `narakosi-dev/toktickit` | #68 | [Issue 2] Actions Taken Backend REST APIs & Role Authorization | **Approved** | Merged |
 
 ### Summary of Reciprocal Reviews Conducted:
 - **Beethoven190 PR #36 (Issue 1):** Inspected Sprint 4 engineering specifications, Zen Green UI tokens, and test traceability matrix. Verified all acceptance criteria and rules. Approved.
 - **Beethoven190 PR #38 (Issue 2):** Inspected 992 additions across Prisma schema, migration, seed data, REST endpoints, and 18 new automated integration tests. Verified conditional `followUpNote` enforcement, terminal status guard, and JWT auto-attribution. Submitted comprehensive English review approving the pull request.
 - **Beethoven190 PR #40 (Issue 3):** Inspected Actions Taken frontend implementation across `ActionsTakenSection.tsx`, `StaffTicketDetail.tsx`, and `TicketDetail.tsx`. Verified dynamic follow-up validation (`BR-04, AC-02`), requester read-only mode (`FR-04, AC-03`), and 7 component tests in `client/tests/lab-04/ActionsTaken.test.tsx` (185/185 tests passing). Submitted English review approving the pull request.
 - **Beethoven190 PR #42 (Issue 4):** Inspected 8-state transition matrix enforcement, server-side resolution gate with `resolutionSummary` requirements, and optimistic concurrency timestamp conflict handling (`409 STALE_UPDATE_CONFLICT`). Verified 14 backend API tests and 6 frontend component tests (205/205 tests passing). Submitted English review approving the pull request.
+- **Beethoven190 PR #43 (Issue 5):** Inspected role-tailored operational dashboards across `StaffDashboard.tsx` (Screen 8.1 / Mockup 1) and `RequesterDashboard.tsx` (Screen 8.2 / Mockup 2). Verified authoritative backend aggregation endpoints (`GET /api/dashboards/staff` and `GET /api/dashboards/requester`), strict requester isolation (zero cross-tenant data leakage), interactive drill-down navigation from KPI cards to queue/tickets, and full test suite passing with 225/225 tests (150 server + 75 client). Submitted English review approving the pull request.
+- **narakosi-dev PR #68 (Issue 2):** Inspected backend REST API implementation for Actions Taken (`GET /api/tickets/:id/actions-taken`, `POST`, `PATCH`), security isolation returning HTTP 404 for non-owner requesters (preventing ticket enumeration), conditional `followUpNote` validation, inactive staff guard, and 22 integration tests in `server/tests/lab-04/actions-taken.api.test.ts` (100% pass). Submitted comprehensive English review approving the pull request.
