@@ -2016,7 +2016,7 @@ app.patch("/api/staff/tickets/:id/status", async (req: Request, res: Response) =
       return;
     }
 
-    const { status } = req.body;
+    const { status, resolutionSummary } = req.body;
     if (!status || typeof status !== "string") {
       res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Status is required." } });
       return;
@@ -2036,12 +2036,27 @@ app.patch("/api/staff/tickets/:id/status", async (req: Request, res: Response) =
       return;
     }
 
+    // Canonical status mapping
+    const statusMap: Record<string, string> = {
+      "new": "New",
+      "open": "Open",
+      "in progress": "In Progress",
+      "in_progress": "In Progress",
+      "waiting for requester": "Waiting for Requester",
+      "waiting_for_requester": "Waiting for Requester",
+      "resolved": "Resolved",
+      "closed": "Closed",
+      "reopened": "Reopened",
+      "cancelled": "Cancelled",
+    };
+    const targetStatus = statusMap[status.toLowerCase().trim()] || status.trim();
+
     const allowedNext = PERMITTED_STATUS_TRANSITIONS[currentTicket.currentStatus] || [];
-    if (currentTicket.currentStatus !== status && !allowedNext.includes(status)) {
+    if (currentTicket.currentStatus !== targetStatus && !allowedNext.includes(targetStatus)) {
       res.status(400).json({
         error: {
           code: "INVALID_STATUS_TRANSITION",
-          message: `Cannot transition from '${currentTicket.currentStatus}' to '${status}'. Permitted transitions: ${
+          message: `Cannot transition from '${currentTicket.currentStatus}' to '${targetStatus}'. Permitted transitions: ${
             allowedNext.length > 0 ? allowedNext.join(", ") : "None (terminal state)"
           }.`,
         },
@@ -2049,10 +2064,39 @@ app.patch("/api/staff/tickets/:id/status", async (req: Request, res: Response) =
       return;
     }
 
+    // Resolution Gate Enforcement (FR-07, BR-11, AC-08):
+    // Advancing status to Resolved or Closed strictly requires >= 1 recorded Action Taken.
+    if (targetStatus === "Resolved" || targetStatus === "Closed") {
+      let actionsCount = 0;
+      try {
+        actionsCount = await getPrisma().actionTaken.count({
+          where: { ticketId },
+        });
+      } catch (_dbErr) {
+        actionsCount = inMemoryActionsTaken.filter((a) => a.ticketId === ticketId).length;
+      }
+
+      if (actionsCount === 0) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: "RESOLUTION_GATE_FAILED",
+            message: "Cannot advance ticket to Resolved or Closed without at least one recorded Action Taken.",
+          },
+        });
+        return;
+      }
+    }
+
     try {
+      const dataToUpdate: any = { currentStatus: targetStatus };
+      if (resolutionSummary !== undefined) {
+        dataToUpdate.resolutionSummary = resolutionSummary ? String(resolutionSummary).trim() : null;
+      }
+
       const updated = await getPrisma().ticket.update({
         where: { id: ticketId },
-        data: { currentStatus: status },
+        data: dataToUpdate,
         include: {
           category: { select: { id: true, name: true } },
           relatedSystem: { select: { id: true, name: true } },
@@ -2063,14 +2107,22 @@ app.patch("/api/staff/tickets/:id/status", async (req: Request, res: Response) =
           internalNotes: { include: { author: { select: { id: true, name: true, role: true } } } },
         },
       });
-      res.status(200).json(updated);
+      res.status(200).json({ success: true, data: updated, ...updated });
     } catch (_dbErr) {
-      currentTicket.currentStatus = status;
-      res.status(200).json(currentTicket);
+      currentTicket.currentStatus = targetStatus;
+      if (resolutionSummary !== undefined) {
+        currentTicket.resolutionSummary = resolutionSummary ? String(resolutionSummary).trim() : null;
+      }
+      res.status(200).json({ success: true, data: currentTicket, ...currentTicket });
     }
   } catch (err) {
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to update ticket status." } });
   }
+});
+
+app.patch("/api/tickets/:id/status", async (req: Request, res: Response) => {
+  // Alias route for status transitions
+  return (app as any)._router.handle(req, res, () => {});
 });
 
 // ---------------------------------------------------------------------------

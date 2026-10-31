@@ -337,7 +337,7 @@ export function StaffTicketDetail({ ticketId, onBack }: Props) {
 
       {/* Operational Feedback Alerts */}
       {actionError && (
-        <div className="alert alert-danger alert-dismissible fade show border-0 mb-3" role="alert">
+        <div className="alert alert-danger alert-dismissible fade show border-0 mb-3" role="alert" data-testid="status-error-alert">
           ⚠️ {actionError}
           <button type="button" className="btn-close" onClick={() => setActionError("")} />
         </div>
@@ -475,6 +475,20 @@ export function StaffTicketDetail({ ticketId, onBack }: Props) {
               <div className="text-muted small mt-1" style={{ fontSize: "11px" }}>
                 Permitted next: {allowedTransitions.length > 0 ? allowedTransitions.join(", ") : "None"}
               </div>
+
+              {/* Resolution Gate Guidance (FR-07, BR-11, AC-08) */}
+              {(selectedStatus === "Resolved" || selectedStatus === "Closed") && actionsTaken.length === 0 && (
+                <div
+                  className="alert alert-warning py-1 px-2 small mt-2 mb-0 d-flex align-items-center gap-1"
+                  style={{ fontSize: "11px", backgroundColor: "#FFFBEB", borderColor: "#FCD34D", color: "#B45309" }}
+                  data-testid="resolution-gate-warning"
+                >
+                  <span>⚠️</span>
+                  <span>
+                    <strong>Resolution Gate:</strong> At least 1 Action Taken must be recorded before advancing to {selectedStatus}.
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
