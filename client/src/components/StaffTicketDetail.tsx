@@ -4,6 +4,7 @@ import {
   User,
   TicketComment,
   InternalNote,
+  ActionTaken,
   fetchStaffTicketDetailApi,
   fetchStaffUsersApi,
   assignStaffTicketApi,
@@ -12,8 +13,10 @@ import {
   addCommentApi,
   addInternalNoteApi,
   getAttachmentDownloadUrl,
+  fetchActionsTaken,
 } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { ActionsTakenSection } from "./ActionsTakenSection";
 
 interface Props {
   ticketId: number;
@@ -44,8 +47,9 @@ export function StaffTicketDetail({ ticketId, onBack }: Props) {
   const [actionError, setActionError] = useState<string>("");
   const [actionSuccess, setActionSuccess] = useState<string>("");
 
-  // Communication tabs
-  const [activeTab, setActiveTab] = useState<"comments" | "notes">("comments");
+  // Communication and Actions tabs
+  const [activeTab, setActiveTab] = useState<"comments" | "notes" | "actions">("comments");
+  const [actionsTaken, setActionsTaken] = useState<ActionTaken[]>([]);
 
   // Public comment input
   const [newComment, setNewComment] = useState<string>("");
@@ -60,18 +64,20 @@ export function StaffTicketDetail({ ticketId, onBack }: Props) {
   // Status selection
   const [selectedStatus, setSelectedStatus] = useState<string>("");
 
-  // Load ticket and assignable staff
+  // Load ticket, assignable staff, and actions taken
   const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const [ticketData, usersData] = await Promise.all([
+      const [ticketData, usersData, actionsData] = await Promise.all([
         fetchStaffTicketDetailApi(ticketId),
         fetchStaffUsersApi().catch(() => []),
+        fetchActionsTaken(ticketId).catch(() => []),
       ]);
       setTicket(ticketData);
       setStaffUsers(usersData);
       setSelectedStatus(ticketData.currentStatus);
+      setActionsTaken(actionsData || ticketData.actionsTaken || []);
     } catch (err: unknown) {
       setError((err as Error).message || "Failed to load ticket detail.");
     } finally {
@@ -331,7 +337,7 @@ export function StaffTicketDetail({ ticketId, onBack }: Props) {
 
       {/* Operational Feedback Alerts */}
       {actionError && (
-        <div className="alert alert-danger alert-dismissible fade show border-0 mb-3" role="alert">
+        <div className="alert alert-danger alert-dismissible fade show border-0 mb-3" role="alert" data-testid="status-error-alert">
           ⚠️ {actionError}
           <button type="button" className="btn-close" onClick={() => setActionError("")} />
         </div>
@@ -469,6 +475,20 @@ export function StaffTicketDetail({ ticketId, onBack }: Props) {
               <div className="text-muted small mt-1" style={{ fontSize: "11px" }}>
                 Permitted next: {allowedTransitions.length > 0 ? allowedTransitions.join(", ") : "None"}
               </div>
+
+              {/* Resolution Gate Guidance (FR-07, BR-11, AC-08) */}
+              {(selectedStatus === "Resolved" || selectedStatus === "Closed") && actionsTaken.length === 0 && (
+                <div
+                  className="alert alert-warning py-1 px-2 small mt-2 mb-0 d-flex align-items-center gap-1"
+                  style={{ fontSize: "11px", backgroundColor: "#FFFBEB", borderColor: "#FCD34D", color: "#B45309" }}
+                  data-testid="resolution-gate-warning"
+                >
+                  <span>⚠️</span>
+                  <span>
+                    <strong>Resolution Gate:</strong> At least 1 Action Taken must be recorded before advancing to {selectedStatus}.
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -544,6 +564,17 @@ export function StaffTicketDetail({ ticketId, onBack }: Props) {
                 data-testid="tab-internal-notes"
               >
                 🔒 Confidential Internal Notes ({ticket.internalNotes?.length || 0})
+              </button>
+            </li>
+            <li className="nav-item">
+              <button
+                type="button"
+                className={`nav-link ${activeTab === "actions" ? "active fw-bold" : "text-muted"}`}
+                style={activeTab === "actions" ? { color: "#006B3C", borderBottom: "3px solid #006B3C" } : {}}
+                onClick={() => setActiveTab("actions")}
+                data-testid="tab-actions-taken"
+              >
+                🛠️ Actions Taken ({actionsTaken.length})
               </button>
             </li>
           </ul>
@@ -716,6 +747,28 @@ export function StaffTicketDetail({ ticketId, onBack }: Props) {
                   {isSubmittingNote ? "Saving..." : "Save Internal Note"}
                 </button>
               </form>
+            </div>
+          )}
+
+          {/* TAB 3: Actions Taken */}
+          {activeTab === "actions" && (
+            <div data-testid="actions-taken-tab-content">
+              <ActionsTakenSection
+                ticketId={ticket.id}
+                actions={actionsTaken}
+                isStaffView={true}
+                onActionCreated={(newAction) => {
+                  setActionsTaken((prev) => [...prev, newAction]);
+                  loadData();
+                }}
+                onActionUpdated={(updatedAction) => {
+                  setActionsTaken((prev) =>
+                    prev.map((a) => (a.id === updatedAction.id ? updatedAction : a))
+                  );
+                  loadData();
+                }}
+                onRefresh={loadData}
+              />
             </div>
           )}
         </div>

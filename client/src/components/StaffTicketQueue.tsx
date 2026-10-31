@@ -11,9 +11,17 @@ import { useAuth } from "../context/AuthContext";
 
 interface Props {
   onSelectTicket?: (ticket: Ticket) => void;
+  initialStatus?: string;
+  initialOwnerFilter?: "all" | "unassigned" | "assigned_to_me";
+  initialPriority?: string;
 }
 
-export function StaffTicketQueue({ onSelectTicket }: Props) {
+export function StaffTicketQueue({
+  onSelectTicket,
+  initialStatus,
+  initialOwnerFilter,
+  initialPriority,
+}: Props) {
   const { user } = useAuth();
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -24,9 +32,21 @@ export function StaffTicketQueue({ onSelectTicket }: Props) {
   // Filter States
   const [search, setSearch] = useState<string>("");
   const [categoryId, setCategoryId] = useState<number | "">("");
-  const [currentStatus, setCurrentStatus] = useState<string>("");
-  const [priority, setPriority] = useState<string>("");
-  const [ownerFilter, setOwnerFilter] = useState<"all" | "unassigned" | "assigned_to_me">("all");
+  const [currentStatus, setCurrentStatus] = useState<string>(initialStatus || "");
+  const [priority, setPriority] = useState<string>(initialPriority || "");
+  const [ownerFilter, setOwnerFilter] = useState<"all" | "unassigned" | "assigned_to_me">(initialOwnerFilter || "all");
+
+  useEffect(() => {
+    if (initialStatus !== undefined) setCurrentStatus(initialStatus);
+  }, [initialStatus]);
+
+  useEffect(() => {
+    if (initialOwnerFilter !== undefined) setOwnerFilter(initialOwnerFilter);
+  }, [initialOwnerFilter]);
+
+  useEffect(() => {
+    if (initialPriority !== undefined) setPriority(initialPriority);
+  }, [initialPriority]);
 
   // Pagination & Sorting States
   const [page, setPage] = useState<number>(1);

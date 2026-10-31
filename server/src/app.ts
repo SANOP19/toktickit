@@ -172,6 +172,56 @@ export const inMemoryTickets: any[] = [...sampleTickets];
 export const inMemoryAttachments: any[] = [];
 export const inMemoryComments: any[] = [];
 export const inMemoryInternalNotes: any[] = [];
+export const inMemoryActionsTaken: any[] = [
+  {
+    id: 1,
+    ticketId: 1,
+    performedById: 3,
+    performedBy: { id: 3, name: "Alex Thompson", email: "tech.alex@example.com", role: "IT_STAFF" },
+    actionDateTime: "2026-10-29T09:15:00.000Z",
+    description: "Ran hardware battery diagnostics and inspected physical cell connectors.",
+    result: "Identified bad cell #3 with voltage drop below 2.4V.",
+    status: "COMPLETED",
+    followUpRequired: true,
+    followUpNote: "Order replacement battery pack and notify requester upon arrival.",
+    attachmentNotes: "battery_diagnostic_report_oct29.pdf",
+    version: 1,
+    createdAt: "2026-10-29T09:15:00.000Z",
+    updatedAt: "2026-10-29T09:15:00.000Z",
+  },
+  {
+    id: 2,
+    ticketId: 1,
+    performedById: 4,
+    performedBy: { id: 4, name: "Lisa Martinez", email: "tech.lisa@example.com", role: "IT_STAFF" },
+    actionDateTime: "2026-10-29T10:45:00.000Z",
+    description: "Received warranty replacement battery pack and installed in chassis.",
+    result: "Full charge cycle reached 100% with stable voltage discharge rate.",
+    status: "COMPLETED",
+    followUpRequired: false,
+    followUpNote: null,
+    attachmentNotes: "post_replacement_power_curve.png",
+    version: 1,
+    createdAt: "2026-10-29T10:45:00.000Z",
+    updatedAt: "2026-10-29T10:45:00.000Z",
+  },
+  {
+    id: 3,
+    ticketId: 2,
+    performedById: 4,
+    performedBy: { id: 4, name: "Lisa Martinez", email: "tech.lisa@example.com", role: "IT_STAFF" },
+    actionDateTime: "2026-10-29T09:30:00.000Z",
+    description: "Reset remote access gateway credentials and cleared active NAT sessions.",
+    result: "User able to complete RADIUS authentication and establish tunnel.",
+    status: "COMPLETED",
+    followUpRequired: false,
+    followUpNote: null,
+    attachmentNotes: "radius_auth_success.log",
+    version: 1,
+    createdAt: "2026-10-29T09:30:00.000Z",
+    updatedAt: "2026-10-29T09:30:00.000Z",
+  },
+];
 
 // ---------------------------------------------------------------------------
 // In-Memory Storage for Users (Offline Auth Fallback)
@@ -1966,7 +2016,7 @@ app.patch("/api/staff/tickets/:id/status", async (req: Request, res: Response) =
       return;
     }
 
-    const { status } = req.body;
+    const { status, resolutionSummary } = req.body;
     if (!status || typeof status !== "string") {
       res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Status is required." } });
       return;
@@ -1986,12 +2036,27 @@ app.patch("/api/staff/tickets/:id/status", async (req: Request, res: Response) =
       return;
     }
 
+    // Canonical status mapping
+    const statusMap: Record<string, string> = {
+      "new": "New",
+      "open": "Open",
+      "in progress": "In Progress",
+      "in_progress": "In Progress",
+      "waiting for requester": "Waiting for Requester",
+      "waiting_for_requester": "Waiting for Requester",
+      "resolved": "Resolved",
+      "closed": "Closed",
+      "reopened": "Reopened",
+      "cancelled": "Cancelled",
+    };
+    const targetStatus = statusMap[status.toLowerCase().trim()] || status.trim();
+
     const allowedNext = PERMITTED_STATUS_TRANSITIONS[currentTicket.currentStatus] || [];
-    if (currentTicket.currentStatus !== status && !allowedNext.includes(status)) {
+    if (currentTicket.currentStatus !== targetStatus && !allowedNext.includes(targetStatus)) {
       res.status(400).json({
         error: {
           code: "INVALID_STATUS_TRANSITION",
-          message: `Cannot transition from '${currentTicket.currentStatus}' to '${status}'. Permitted transitions: ${
+          message: `Cannot transition from '${currentTicket.currentStatus}' to '${targetStatus}'. Permitted transitions: ${
             allowedNext.length > 0 ? allowedNext.join(", ") : "None (terminal state)"
           }.`,
         },
@@ -1999,10 +2064,39 @@ app.patch("/api/staff/tickets/:id/status", async (req: Request, res: Response) =
       return;
     }
 
+    // Resolution Gate Enforcement (FR-07, BR-11, AC-08):
+    // Advancing status to Resolved or Closed strictly requires >= 1 recorded Action Taken.
+    if (targetStatus === "Resolved" || targetStatus === "Closed") {
+      let actionsCount = 0;
+      try {
+        actionsCount = await getPrisma().actionTaken.count({
+          where: { ticketId },
+        });
+      } catch (_dbErr) {
+        actionsCount = inMemoryActionsTaken.filter((a) => a.ticketId === ticketId).length;
+      }
+
+      if (actionsCount === 0) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: "RESOLUTION_GATE_FAILED",
+            message: "Cannot advance ticket to Resolved or Closed without at least one recorded Action Taken.",
+          },
+        });
+        return;
+      }
+    }
+
     try {
+      const dataToUpdate: any = { currentStatus: targetStatus };
+      if (resolutionSummary !== undefined) {
+        dataToUpdate.resolutionSummary = resolutionSummary ? String(resolutionSummary).trim() : null;
+      }
+
       const updated = await getPrisma().ticket.update({
         where: { id: ticketId },
-        data: { currentStatus: status },
+        data: dataToUpdate,
         include: {
           category: { select: { id: true, name: true } },
           relatedSystem: { select: { id: true, name: true } },
@@ -2013,14 +2107,22 @@ app.patch("/api/staff/tickets/:id/status", async (req: Request, res: Response) =
           internalNotes: { include: { author: { select: { id: true, name: true, role: true } } } },
         },
       });
-      res.status(200).json(updated);
+      res.status(200).json({ success: true, data: updated, ...updated });
     } catch (_dbErr) {
-      currentTicket.currentStatus = status;
-      res.status(200).json(currentTicket);
+      currentTicket.currentStatus = targetStatus;
+      if (resolutionSummary !== undefined) {
+        currentTicket.resolutionSummary = resolutionSummary ? String(resolutionSummary).trim() : null;
+      }
+      res.status(200).json({ success: true, data: currentTicket, ...currentTicket });
     }
   } catch (err) {
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to update ticket status." } });
   }
+});
+
+app.patch("/api/tickets/:id/status", async (req: Request, res: Response) => {
+  // Alias route for status transitions
+  return (app as any)._router.handle(req, res, () => {});
 });
 
 // ---------------------------------------------------------------------------
@@ -2148,6 +2250,483 @@ const handlePostInternalNote = async (req: Request, res: Response) => {
 
 app.post("/api/tickets/:id/notes", handlePostInternalNote);
 app.post("/api/staff/tickets/:id/notes", handlePostInternalNote);
+
+// ===========================================================================
+// [Actions Taken Endpoints] Lab 4 Issue 2 (FR-01..06, BR-01..09, AC-01..07)
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// [Route: Actions Taken - GET]
+// ---------------------------------------------------------------------------
+const handleGetActionsTaken = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+      return;
+    }
+
+    const ticketId = Number(req.params.id);
+    if (isNaN(ticketId)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid ticket ID." } });
+      return;
+    }
+
+    let ticket: any = null;
+    try {
+      ticket = await getPrisma().ticket.findUnique({ where: { id: ticketId } });
+    } catch (_dbErr) {
+      ticket = inMemoryTickets.find((t) => t.id === ticketId);
+    }
+
+    if (!ticket) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
+      return;
+    }
+
+    // Requester ticket isolation: requesters can only view actions on their own tickets (AC-04, BR-16)
+    if (req.user.role === "REQUESTER" && ticket.requesterId !== req.user.id) {
+      res.status(403).json({ error: { code: "FORBIDDEN", message: "Access denied to other user's ticket actions." } });
+      return;
+    }
+
+    let actionsTaken: any[] = [];
+    try {
+      actionsTaken = await (getPrisma() as any).actionTaken.findMany({
+        where: { ticketId },
+        include: { performedBy: { select: { id: true, name: true, email: true, role: true } } },
+        orderBy: { actionDateTime: "asc" },
+      });
+      res.status(200).json({ success: true, data: { ticketId, actionsTaken }, actionsTaken });
+    } catch (_dbErr) {
+      actionsTaken = inMemoryActionsTaken
+        .filter((a) => a.ticketId === ticketId)
+        .sort((a, b) => new Date(a.actionDateTime).getTime() - new Date(b.actionDateTime).getTime());
+      res.status(200).json({ success: true, data: { ticketId, actionsTaken }, actionsTaken });
+    }
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to fetch actions taken." } });
+  }
+};
+
+app.get("/api/tickets/:id/actions-taken", handleGetActionsTaken);
+app.get("/api/staff/tickets/:id/actions-taken", handleGetActionsTaken);
+
+// ---------------------------------------------------------------------------
+// [Route: Actions Taken - POST]
+// ---------------------------------------------------------------------------
+const handlePostActionTaken = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+      return;
+    }
+
+    // Role check: Only IT_STAFF and ADMINISTRATOR allowed (BR-04, AC-03)
+    if (req.user.role !== "IT_STAFF" && req.user.role !== "ADMINISTRATOR") {
+      res.status(403).json({ error: { code: "FORBIDDEN", message: "Access denied. Only IT Staff and Administrators may record Actions Taken." } });
+      return;
+    }
+
+    // Inactive staff check: Cannot attribute action to deactivated staff (AC-05, BR-07)
+    let currentUser: any = null;
+    try {
+      currentUser = await getPrisma().user.findUnique({ where: { id: req.user.id } });
+    } catch (_dbErr) {
+      currentUser = inMemoryUsers.find((u) => u.id === req.user?.id);
+    }
+
+    if (currentUser && !currentUser.isActive) {
+      res.status(400).json({ error: { code: "INACTIVE_STAFF_MEMBER", message: "Cannot record action for a deactivated staff member." } });
+      return;
+    }
+
+    const ticketId = Number(req.params.id);
+    if (isNaN(ticketId)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid ticket ID." } });
+      return;
+    }
+
+    let ticket: any = null;
+    try {
+      ticket = await getPrisma().ticket.findUnique({ where: { id: ticketId } });
+    } catch (_dbErr) {
+      ticket = inMemoryTickets.find((t) => t.id === ticketId);
+    }
+
+    if (!ticket) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found." } });
+      return;
+    }
+
+    const { description, result, followUpRequired, followUpNote, attachmentNotes, status } = req.body;
+
+    // Content validation (BR-06)
+    if (!description || typeof description !== "string" || description.trim().length < 5 || description.trim().length > 2000) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Description must be between 5 and 2000 characters." } });
+      return;
+    }
+
+    if (!result || typeof result !== "string" || result.trim().length < 3 || result.trim().length > 2000) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Result must be between 3 and 2000 characters." } });
+      return;
+    }
+
+    const isFollowUp = Boolean(followUpRequired);
+
+    // Conditional follow-up note validation (BR-05, AC-02)
+    if (isFollowUp && (!followUpNote || typeof followUpNote !== "string" || followUpNote.trim().length < 5)) {
+      res.status(400).json({ error: { code: "FOLLOW_UP_NOTE_REQUIRED", message: "Follow-up note is required and must be at least 5 characters when follow-up is needed." } });
+      return;
+    }
+
+    const validStatuses = ["IN_PROGRESS", "COMPLETED", "CANCELLED"];
+    const actionStatus = status && validStatuses.includes(status) ? status : "COMPLETED";
+
+    const performedById = req.user.id;
+    const performedByName = req.user.name || currentUser?.name || "IT Staff";
+    const performedByRole = req.user.role;
+    const performedByEmail = req.user.email || currentUser?.email || "";
+
+    try {
+      const created = await (getPrisma() as any).actionTaken.create({
+        data: {
+          ticketId,
+          performedById,
+          actionDateTime: new Date(),
+          description: description.trim(),
+          result: result.trim(),
+          status: actionStatus,
+          followUpRequired: isFollowUp,
+          followUpNote: isFollowUp ? followUpNote.trim() : null,
+          attachmentNotes: attachmentNotes ? String(attachmentNotes).trim() : null,
+          version: 1,
+        },
+        include: {
+          performedBy: { select: { id: true, name: true, email: true, role: true } },
+        },
+      });
+      res.status(201).json({ success: true, data: created, ...created });
+    } catch (_dbErr) {
+      const newAction = {
+        id: inMemoryActionsTaken.length + 1,
+        ticketId,
+        performedById,
+        performedBy: { id: performedById, name: performedByName, email: performedByEmail, role: performedByRole },
+        actionDateTime: new Date().toISOString(),
+        description: description.trim(),
+        result: result.trim(),
+        status: actionStatus,
+        followUpRequired: isFollowUp,
+        followUpNote: isFollowUp ? followUpNote.trim() : null,
+        attachmentNotes: attachmentNotes ? String(attachmentNotes).trim() : null,
+        version: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      inMemoryActionsTaken.push(newAction);
+      res.status(201).json({ success: true, data: newAction, ...newAction });
+    }
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to create action taken." } });
+  }
+};
+
+app.post("/api/tickets/:id/actions-taken", handlePostActionTaken);
+app.post("/api/staff/tickets/:id/actions-taken", handlePostActionTaken);
+
+// ---------------------------------------------------------------------------
+// [Route: Actions Taken - PATCH (With Concurrency Control)]
+// ---------------------------------------------------------------------------
+const handlePatchActionTaken = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+      return;
+    }
+
+    if (req.user.role !== "IT_STAFF" && req.user.role !== "ADMINISTRATOR") {
+      res.status(403).json({ error: { code: "FORBIDDEN", message: "Access denied. Only IT Staff and Administrators may modify Actions Taken." } });
+      return;
+    }
+
+    const ticketId = Number(req.params.id);
+    const actionId = Number(req.params.actionId);
+    if (isNaN(ticketId) || isNaN(actionId)) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Invalid ticket or action ID." } });
+      return;
+    }
+
+    let existingAction: any = null;
+    try {
+      existingAction = await (getPrisma() as any).actionTaken.findUnique({ where: { id: actionId } });
+    } catch (_dbErr) {
+      existingAction = inMemoryActionsTaken.find((a) => a.id === actionId && a.ticketId === ticketId);
+    }
+
+    if (!existingAction) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Action Taken record not found." } });
+      return;
+    }
+
+    // Optimistic concurrency / stale-update handling (BR-08, AC-07)
+    if (req.body.version !== undefined && Number(req.body.version) !== existingAction.version) {
+      res.status(409).json({
+        error: {
+          code: "STALE_UPDATE_DETECTED",
+          message: "Conflict: This action has been modified by another session. Please reload the latest data.",
+        },
+      });
+      return;
+    }
+
+    const { description, result, status, followUpRequired, followUpNote, attachmentNotes } = req.body;
+
+    const newIsFollowUp = followUpRequired !== undefined ? Boolean(followUpRequired) : existingAction.followUpRequired;
+    const newFollowUpNote = followUpNote !== undefined ? (followUpNote ? String(followUpNote).trim() : null) : existingAction.followUpNote;
+
+    if (newIsFollowUp && (!newFollowUpNote || newFollowUpNote.length < 5)) {
+      res.status(400).json({ error: { code: "FOLLOW_UP_NOTE_REQUIRED", message: "Follow-up note is required and must be at least 5 characters when follow-up is needed." } });
+      return;
+    }
+
+    const validStatuses = ["IN_PROGRESS", "COMPLETED", "CANCELLED"];
+    const newStatus = status && validStatuses.includes(status) ? status : existingAction.status;
+    const newDesc = description ? String(description).trim() : existingAction.description;
+    const newResult = result ? String(result).trim() : existingAction.result;
+    const newAttachmentNotes = attachmentNotes !== undefined ? (attachmentNotes ? String(attachmentNotes).trim() : null) : existingAction.attachmentNotes;
+    const newVersion = (existingAction.version || 1) + 1;
+
+    try {
+      const updated = await (getPrisma() as any).actionTaken.update({
+        where: { id: actionId },
+        data: {
+          description: newDesc,
+          result: newResult,
+          status: newStatus,
+          followUpRequired: newIsFollowUp,
+          followUpNote: newIsFollowUp ? newFollowUpNote : null,
+          attachmentNotes: newAttachmentNotes,
+          version: newVersion,
+        },
+        include: {
+          performedBy: { select: { id: true, name: true, email: true, role: true } },
+        },
+      });
+      res.status(200).json({ success: true, data: updated, ...updated });
+    } catch (_dbErr) {
+      existingAction.description = newDesc;
+      existingAction.result = newResult;
+      existingAction.status = newStatus;
+      existingAction.followUpRequired = newIsFollowUp;
+      existingAction.followUpNote = newIsFollowUp ? newFollowUpNote : null;
+      existingAction.attachmentNotes = newAttachmentNotes;
+      existingAction.version = newVersion;
+      existingAction.updatedAt = new Date().toISOString();
+      res.status(200).json({ success: true, data: existingAction, ...existingAction });
+    }
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to update action taken." } });
+  }
+};
+
+app.patch("/api/tickets/:id/actions-taken/:actionId", handlePatchActionTaken);
+app.patch("/api/staff/tickets/:id/actions-taken/:actionId", handlePatchActionTaken);
+
+// ===========================================================================
+// [Dashboard Endpoints] Lab 4 Issue 5 (FR-09, FR-10, BR-14..18, AC-11..14)
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// [Route: IT Staff Dashboard] GET /api/dashboards/staff
+// ---------------------------------------------------------------------------
+app.get("/api/dashboards/staff", async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+      return;
+    }
+
+    // Role check: Only IT_STAFF and ADMINISTRATOR allowed (BR-16, AC-11)
+    if (req.user.role === "REQUESTER") {
+      res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Forbidden: Requester accounts cannot access IT Staff Dashboard.",
+        },
+      });
+      return;
+    }
+
+    let allTickets: any[] = [];
+    let userActions: any[] = [];
+
+    try {
+      allTickets = await getPrisma().ticket.findMany({
+        include: { category: true, owner: true },
+        orderBy: { updatedAt: "desc" },
+      });
+
+      userActions = await (getPrisma() as any).actionTaken.findMany({
+        where: { performedById: req.user.id },
+        include: { ticket: { select: { ticketNumber: true } } },
+        orderBy: { actionDateTime: "desc" },
+        take: 5,
+      });
+    } catch (_dbErr) {
+      allTickets = inMemoryTickets;
+      userActions = inMemoryActionsTaken
+        .filter((a) => a.performedById === req.user!.id)
+        .sort((a, b) => new Date(b.actionDateTime).getTime() - new Date(a.actionDateTime).getTime())
+        .slice(0, 5);
+    }
+
+    const newTickets = allTickets.filter((t: any) => t.currentStatus && t.currentStatus.toLowerCase() === "new").length;
+    const openTickets = allTickets.filter((t: any) => t.currentStatus && t.currentStatus.toLowerCase() === "open").length;
+    const inProgressTickets = allTickets.filter(
+      (t: any) => t.currentStatus && ["in progress", "in_progress"].includes(t.currentStatus.toLowerCase())
+    ).length;
+    const waitingForRequester = allTickets.filter(
+      (t: any) => t.currentStatus && ["waiting for requester", "waiting_for_requester"].includes(t.currentStatus.toLowerCase())
+    ).length;
+    const myAssignedTickets = allTickets.filter(
+      (t: any) => t.ownerId === req.user!.id && (!t.currentStatus || !["closed", "cancelled"].includes(t.currentStatus.toLowerCase()))
+    ).length;
+    const urgentTickets = allTickets.filter((t: any) => {
+      const p = (t.itPriority || t.requestedPriority || "").toUpperCase();
+      const status = (t.currentStatus || "").toLowerCase();
+      return p === "URGENT" && !["closed", "cancelled"].includes(status);
+    }).length;
+
+    const metrics = {
+      newTickets,
+      openTickets,
+      inProgressTickets,
+      waitingForRequester,
+      myAssignedTickets,
+      urgentTickets,
+    };
+
+    const sortedTickets = [...allTickets].sort(
+      (a: any, b: any) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
+    );
+
+    const recentTickets = sortedTickets.slice(0, 5).map((t: any) => ({
+      id: t.id,
+      ticketNumber: t.ticketNumber,
+      summary: t.summary,
+      category: t.category?.name || (typeof t.category === "string" ? t.category : "General"),
+      itPriority: t.itPriority || t.requestedPriority || "MEDIUM",
+      currentStatus: t.currentStatus,
+      ownerName: t.owner?.name || (t.ownerId ? `Staff #${t.ownerId}` : "Unassigned"),
+      updatedAt: t.updatedAt || t.createdAt,
+    }));
+
+    const myRecentActions = userActions.map((a: any) => {
+      let tNum = a.ticket?.ticketNumber;
+      if (!tNum) {
+        const t = allTickets.find((tick: any) => tick.id === a.ticketId);
+        tNum = t?.ticketNumber || `TKT-${a.ticketId}`;
+      }
+      return {
+        id: a.id,
+        ticketId: a.ticketId,
+        ticketNumber: tNum,
+        description: a.description,
+        status: a.status,
+        actionDateTime: a.actionDateTime,
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        metrics,
+        recentTickets,
+        myRecentActions,
+      },
+      metrics,
+      recentTickets,
+      myRecentActions,
+    });
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to generate staff dashboard." } });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// [Route: Requester Personal Dashboard] GET /api/dashboards/requester
+// ---------------------------------------------------------------------------
+app.get("/api/dashboards/requester", async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+      return;
+    }
+
+    let userTickets: any[] = [];
+
+    try {
+      userTickets = await getPrisma().ticket.findMany({
+        where: { requesterId: req.user.id },
+        include: { category: true },
+        orderBy: { updatedAt: "desc" },
+      });
+    } catch (_dbErr) {
+      userTickets = inMemoryTickets.filter((t: any) => t.requesterId === req.user!.id);
+    }
+
+    const myOpenTickets = userTickets.filter((t: any) => {
+      const status = (t.currentStatus || "").toLowerCase();
+      return !["resolved", "closed", "cancelled"].includes(status);
+    }).length;
+    const inProgressTickets = userTickets.filter((t: any) => {
+      const status = (t.currentStatus || "").toLowerCase();
+      return ["in progress", "in_progress"].includes(status);
+    }).length;
+    const resolvedTickets = userTickets.filter((t: any) => {
+      const status = (t.currentStatus || "").toLowerCase();
+      return status === "resolved";
+    }).length;
+    const closedTickets = userTickets.filter((t: any) => {
+      const status = (t.currentStatus || "").toLowerCase();
+      return status === "closed";
+    }).length;
+
+    const metrics = {
+      myOpenTickets,
+      inProgressTickets,
+      resolvedTickets,
+      closedTickets,
+    };
+
+    const sortedUserTickets = [...userTickets].sort(
+      (a: any, b: any) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
+    );
+
+    const recentTickets = sortedUserTickets.slice(0, 5).map((t: any) => ({
+      id: t.id,
+      ticketNumber: t.ticketNumber,
+      summary: t.summary,
+      category: t.category?.name || (typeof t.category === "string" ? t.category : "General"),
+      requestedPriority: t.requestedPriority || "MEDIUM",
+      currentStatus: t.currentStatus,
+      isRequesterResolved: Boolean(t.isRequesterResolved),
+      updatedAt: t.updatedAt || t.createdAt,
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        metrics,
+        recentTickets,
+      },
+      metrics,
+      recentTickets,
+    });
+  } catch (err) {
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Failed to generate requester dashboard." } });
+  }
+});
 
 // ===========================================================================
 // [Administrator User Management Endpoints] Lab 3 Issue 6 (FR-11, FR-12, BR-17..21, AC-10..13)

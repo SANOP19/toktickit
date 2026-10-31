@@ -1,8 +1,8 @@
-import { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment, InternalNote, User, CreateUserPayload, UpdateUserPayload } from "./types";
+import { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment, InternalNote, User, CreateUserPayload, UpdateUserPayload, ActionTaken, CreateActionTakenPayload, UpdateActionTakenPayload, StaffDashboardData, RequesterDashboardData, StaffDashboardMetrics, RequesterDashboardMetrics } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
-export type { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment, InternalNote, User, CreateUserPayload, UpdateUserPayload };
+export type { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment, InternalNote, User, CreateUserPayload, UpdateUserPayload, ActionTaken, CreateActionTakenPayload, UpdateActionTakenPayload, StaffDashboardData, RequesterDashboardData, StaffDashboardMetrics, RequesterDashboardMetrics };
 
 export interface SystemStatus {
   online: boolean;
@@ -578,3 +578,86 @@ export async function resetUserPasswordApi(id: number, newInitialPassword: strin
   return data;
 }
 
+// ---------------------------------------------------------------------------
+// [Actions Taken API Helpers] Sprint 4
+// ---------------------------------------------------------------------------
+export async function fetchActionsTaken(ticketId: number): Promise<ActionTaken[]> {
+  const headers: Record<string, string> = {};
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions-taken`, { headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to load Actions Taken.");
+  }
+  return data?.data?.actionsTaken || data?.actionsTaken || (Array.isArray(data) ? data : []);
+}
+
+export async function createActionTakenApi(ticketId: number, payload: CreateActionTakenPayload): Promise<ActionTaken> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions-taken`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to record Action Taken.");
+  }
+  return data?.data || data;
+}
+
+export async function updateActionTakenApi(ticketId: number, actionId: number, payload: UpdateActionTakenPayload): Promise<ActionTaken> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/tickets/${ticketId}/actions-taken/${actionId}`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to update Action Taken.");
+  }
+  return data?.data || data;
+}
+
+// ---------------------------------------------------------------------------
+// [Dashboard API Helpers] Sprint 4 (FR-09, FR-10, BR-14..18, AC-11..14)
+// ---------------------------------------------------------------------------
+export async function fetchStaffDashboardApi(): Promise<StaffDashboardData> {
+  const headers: Record<string, string> = {};
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/dashboards/staff`, { headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to load Staff Dashboard data.");
+  }
+  return data?.data || data;
+}
+
+export async function fetchRequesterDashboardApi(): Promise<RequesterDashboardData> {
+  const headers: Record<string, string> = {};
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/dashboards/requester`, { headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to load Requester Dashboard data.");
+  }
+  return data?.data || data;
+}

@@ -36,6 +36,12 @@ enum Priority {
   URGENT
 }
 
+enum ActionStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
 // ---------------------------------------------------------------------------
 // [Data Model: Category] Reference entity for IT request categories
 // ---------------------------------------------------------------------------
@@ -63,6 +69,7 @@ model User {
   ticketsAssigned    Ticket[]       @relation("AssignedTickets")
   comments           Comment[]
   internalNotes      InternalNote[]
+  actionsTaken       ActionTaken[]
 
   @@index([role])
   @@index([email])
@@ -91,6 +98,7 @@ model Ticket {
   itPriority          String?
   currentStatus       String         @default("New")
   isRequesterResolved Boolean        @default(false)
+  resolutionSummary   String?
   requesterId         Int
   requester           User           @relation("RequesterTickets", fields: [requesterId], references: [id])
   ownerId             Int?
@@ -104,6 +112,7 @@ model Ticket {
   attachments         Attachment[]
   comments            Comment[]
   internalNotes       InternalNote[]
+  actionsTaken        ActionTaken[]
 
   @@index([requesterId])
   @@index([ownerId])
@@ -162,4 +171,28 @@ model InternalNote {
 
   @@index([ticketId])
   @@index([authorId])
+}
+
+// ---------------------------------------------------------------------------
+// [Data Model: ActionTaken] Operational work interventions recorded on tickets
+// ---------------------------------------------------------------------------
+model ActionTaken {
+  id               Int          @id @default(autoincrement())
+  ticketId         Int
+  ticket           Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  performedById    Int
+  performedBy      User         @relation(fields: [performedById], references: [id])
+  actionDateTime   DateTime     @default(now())
+  description      String
+  result           String
+  status           ActionStatus @default(COMPLETED)
+  followUpRequired Boolean      @default(false)
+  followUpNote     String?
+  attachmentNotes  String?
+  version          Int          @default(1)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([ticketId])
+  @@index([performedById])
 }

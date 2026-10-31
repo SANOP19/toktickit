@@ -93,6 +93,8 @@ export interface Ticket {
   attachments?: Attachment[];
   comments?: TicketComment[];
   internalNotes?: InternalNote[];
+  actionsTaken?: ActionTaken[];
+  resolutionSummary?: string | null;
 }
 
 export interface PaginatedResponse<T> {
@@ -118,4 +120,114 @@ export interface UpdateUserPayload {
   email?: string;
   role?: Role;
   isActive?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// [Sprint 4: Actions Taken Interfaces]
+// ---------------------------------------------------------------------------
+export type ActionStatus = "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+
+export interface ActionTaken {
+  id: number;
+  ticketId: number;
+  performedById: number;
+  performedBy?: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+  };
+  actionDateTime: string;
+  description: string;
+  result: string;
+  status: ActionStatus;
+  followUpRequired: boolean;
+  followUpNote?: string | null;
+  attachmentNotes?: string | null;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateActionTakenPayload {
+  description: string;
+  result: string;
+  status?: ActionStatus;
+  followUpRequired?: boolean;
+  followUpNote?: string | null;
+  attachmentNotes?: string | null;
+}
+
+export interface UpdateActionTakenPayload {
+  description?: string;
+  result?: string;
+  status?: ActionStatus;
+  followUpRequired?: boolean;
+  followUpNote?: string | null;
+  attachmentNotes?: string | null;
+  version?: number;
+}
+
+
+
+// ---------------------------------------------------------------------------
+// [Sprint 4: Dashboard Interfaces]
+// ---------------------------------------------------------------------------
+export interface StaffDashboardMetrics {
+  newTickets: number;
+  openTickets: number;
+  inProgressTickets: number;
+  waitingForRequester: number;
+  myAssignedTickets: number;
+  urgentTickets: number;
+}
+
+export interface StaffRecentTicket {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  category: string;
+  itPriority?: string;
+  requestedPriority?: string;
+  currentStatus: string;
+  ownerName?: string;
+  updatedAt: string;
+}
+
+export interface StaffRecentAction {
+  id: number;
+  ticketId: number;
+  ticketNumber?: string;
+  description: string;
+  status: ActionStatus | string;
+  actionDateTime: string;
+}
+
+export interface StaffDashboardData {
+  metrics: StaffDashboardMetrics;
+  recentTickets: StaffRecentTicket[];
+  myRecentActions?: StaffRecentAction[];
+}
+
+export interface RequesterDashboardMetrics {
+  myOpenTickets: number;
+  inProgressTickets: number;
+  resolvedTickets: number;
+  closedTickets: number;
+}
+
+export interface RequesterRecentTicket {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  category: string;
+  requestedPriority: string;
+  currentStatus: string;
+  isRequesterResolved?: boolean;
+  updatedAt: string;
+}
+
+export interface RequesterDashboardData {
+  metrics: RequesterDashboardMetrics;
+  recentTickets: RequesterRecentTicket[];
 }
