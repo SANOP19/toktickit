@@ -116,13 +116,13 @@
 
 | ID | Design Requirement | Evaluation Standard | Status |
 | :--- | :--- | :--- | :---: |
-| **VC-01** | **Zen Green Palette** | Primary `#006B3C`, focus `#0B7A46`, tint `#EAF6EF` used consistently | Planned |
-| **VC-02** | **Role Navigation** | Navigation strictly matches authenticated role; active page indicated | Planned |
-| **VC-03** | **Badges & Labels** | Semantic color-coding for status (New, Open, In Progress, Resolved, Closed) | Planned |
-| **VC-04** | **Editable vs Read-Only**| Editable inputs have distinct borders; read-only fields use neutral background | Planned |
-| **VC-05** | **Communication Tabs** | Public Comments (Green), Internal Notes (Amber 🔒), Actions Taken (Teal) | Planned |
-| **VC-06** | **Validation Placement** | Inline red error text directly below invalid inputs; summary alerts on top | Planned |
-| **VC-07** | **Keyboard Focus** | Visible outline (`3px solid #0B7A46`) on all interactive controls via Tab | Planned |
-| **VC-08** | **Clipping & Overlap** | Zero truncated cards, no overlapping controls, modals stay inside viewport | Planned |
-| **VC-09** | **Zero Overflow** | Zero horizontal scrollbars across 1280px, 768px, and 375px viewports | Planned |
-| **VC-10** | **Obsolete UI Purge** | All temporary dev selectors and legacy buttons completely removed | Planned |
+| **VC-01** | **Zen Green Palette** | Primary `#006B3C`, focus `#0B7A46`, tint `#EAF6EF` used consistently | **Verified** |
+| **VC-02** | **Role Navigation** | Navigation strictly matches authenticated role; active page indicated | **Verified** |
+| **VC-03** | **Badges & Labels** | Semantic color-coding for status (New, Open, In Progress, Resolved, Closed) | **Verified** |
+| **VC-04** | **Editable vs Read-Only**| Editable inputs have distinct borders; read-only fields use neutral background | **Verified** |
+| **VC-05** | **Communication Tabs** | Public Comments (Green), Internal Notes (Amber 🔒), Actions Taken (Teal) | **Verified** |
+| **VC-06** | **Validation Placement** | Inline red error text directly below invalid inputs; summary alerts on top | **Verified** |
+| **VC-07** | **Keyboard Focus** | Visible outline (`3px solid #0B7A46`) on all interactive controls via Tab | **Verified** |
+| **VC-08** | **Clipping & Overlap** | Zero truncated cards, no overlapping controls, modals stay inside viewport | **Verified** |
+| **VC-09** | **Zero Overflow** | Zero horizontal scrollbars across 1280px, 768px, and 375px viewports | **Verified** |
+| **VC-10** | **Obsolete UI Purge** | All temporary dev selectors and legacy buttons completely removed | **Verified** |

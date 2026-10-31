@@ -6,11 +6,18 @@ test.describe("Requester End-to-End User Journey (E2E-01)", () => {
   test("complete requester journey from selection, ticket creation, list filtering, detail inspection, to attachment soft-removal", async ({
     page,
   }) => {
-    // 1. Visit Application Home
+    // 1. Visit Application Home (authenticate as requester if required)
     await page.goto("/");
+    const loginEmail = page.locator("#login-email-input");
+    if (await loginEmail.isVisible()) {
+      await loginEmail.fill("jennifer.a@example.com");
+      await page.locator("#login-password-input").fill("Password123!");
+      await page.locator("#login-submit-button").click();
+      await expect(page.getByText("👤 Jennifer Anderson")).toBeVisible();
+    }
     await expect(page.locator("h1")).toContainText("IT Service Desk");
 
-    // 2. Open Development Requester Selection & Select "Jennifer Anderson"
+    // 2. Open Development Requester Selection & Select "Jennifer Anderson" (if dev switcher visible)
     const changeRequesterBtn = page.getByRole("button", { name: /Change Requester/i });
     if (await changeRequesterBtn.isVisible()) {
       await changeRequesterBtn.click();
@@ -20,7 +27,7 @@ test.describe("Requester End-to-End User Journey (E2E-01)", () => {
     }
 
     // 3. Navigate to "Create Ticket"
-    await page.getByRole("button", { name: /Create Ticket/i }).first().click();
+    await page.getByTestId("nav-create-ticket").click();
     await expect(page.getByText(/Create IT Support Ticket/i)).toBeVisible();
 
     // 4. Fill in Ticket Information
@@ -29,8 +36,8 @@ test.describe("Requester End-to-End User Journey (E2E-01)", () => {
     await page.locator("#prioritySelect").selectOption("HIGH");
 
     const uniqueSummary = `E2E Laptop Display Failure ${Date.now()}`;
-    await page.locator("#summaryInput").fill(uniqueSummary);
-    await page.locator("#descriptionInput").fill(
+    await page.locator("#ticketSummary, #summaryInput").fill(uniqueSummary);
+    await page.locator("#ticketDescription, #descriptionInput").fill(
       "Screen flickers uncontrollably when connected to external monitor via HDMI dock."
     );
 
@@ -49,13 +56,13 @@ test.describe("Requester End-to-End User Journey (E2E-01)", () => {
 
     // 8. Search for the newly created ticket
     await page.locator("#ticketSearchInput").fill(createdTicketNumber);
-    await expect(page.getByText(createdTicketNumber)).toBeVisible();
-    await expect(page.getByText(uniqueSummary)).toBeVisible();
+    await expect(page.getByText(createdTicketNumber).first()).toBeVisible();
+    await expect(page.getByText(uniqueSummary).first()).toBeVisible();
 
     // 9. Open Ticket Detail View
-    await page.getByText(createdTicketNumber).click();
+    await page.getByText(createdTicketNumber).first().click();
     await expect(page.getByRole("heading", { name: createdTicketNumber })).toBeVisible();
-    await expect(page.getByText(uniqueSummary)).toBeVisible();
+    await expect(page.getByText(uniqueSummary).first()).toBeVisible();
 
     // 10. Prepare and Upload a Dummy PNG Attachment
     const dummyPngPath = path.resolve(process.cwd(), "e2e-test-upload.png");
