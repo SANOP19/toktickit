@@ -77,9 +77,9 @@ npm --prefix client run build
 *Compiles TypeScript and bundles via Vite.*  
 **Result:** Built in ~699ms with 0 type errors and 0 warnings.
 
-### 3.4 Playwright End-to-End Suites
+### 3.4 Playwright End-to-End Suites (Lab 4)
 ```powershell
-npx playwright test e2e/lab-02/ e2e/lab-03/ e2e/lab-04/ --workers=1
+npx playwright test e2e/lab-04/ --workers=1
 ```
-*Runs complete multi-role end-to-end journey tests for all sprints.*  
-**Result:** `12 passed (12)` in ~55.4s (100% pass rate across Desktop, Tablet, and Mobile).
+*Runs complete multi-role end-to-end journey tests for Sprint 4 features.*  
+**Result:** `6 passed (6)` in ~26.2s (100% pass rate across Desktop, Tablet, and Mobile).
