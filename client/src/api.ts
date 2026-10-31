@@ -1,8 +1,8 @@
-import { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment, InternalNote, User, CreateUserPayload, UpdateUserPayload, ActionTaken, CreateActionTakenPayload, UpdateActionTakenPayload } from "./types";
+import { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment, InternalNote, User, CreateUserPayload, UpdateUserPayload, ActionTaken, CreateActionTakenPayload, UpdateActionTakenPayload, StaffDashboardData, RequesterDashboardData, StaffDashboardMetrics, RequesterDashboardMetrics } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
-export type { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment, InternalNote, User, CreateUserPayload, UpdateUserPayload, ActionTaken, CreateActionTakenPayload, UpdateActionTakenPayload };
+export type { Category, RelatedSystem, RequesterUser, Attachment, Ticket, TicketPriority, TicketComment, InternalNote, User, CreateUserPayload, UpdateUserPayload, ActionTaken, CreateActionTakenPayload, UpdateActionTakenPayload, StaffDashboardData, RequesterDashboardData, StaffDashboardMetrics, RequesterDashboardMetrics };
 
 export interface SystemStatus {
   online: boolean;
@@ -631,4 +631,33 @@ export async function updateActionTakenApi(ticketId: number, actionId: number, p
   return data?.data || data;
 }
 
+// ---------------------------------------------------------------------------
+// [Dashboard API Helpers] Sprint 4 (FR-09, FR-10, BR-14..18, AC-11..14)
+// ---------------------------------------------------------------------------
+export async function fetchStaffDashboardApi(): Promise<StaffDashboardData> {
+  const headers: Record<string, string> = {};
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/dashboards/staff`, { headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to load Staff Dashboard data.");
+  }
+  return data?.data || data;
+}
 
+export async function fetchRequesterDashboardApi(): Promise<RequesterDashboardData> {
+  const headers: Record<string, string> = {};
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}/api/dashboards/requester`, { headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || "Failed to load Requester Dashboard data.");
+  }
+  return data?.data || data;
+}
